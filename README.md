@@ -1,5 +1,8 @@
 # Memora: Build Artifact Cache for Git Repositories
 
+[![Crate on crates.io](https://img.shields.io/crates/v/memora)](https://crates.io/crates/memora)
+![Licensed MIT/Apache-2.0](https://img.shields.io/crates/l/memora)
+
 Memora is a [build artifact][] [cache][] for [Git repositories][].  Memora's purpose is to minimize
 redundant builds to save time and improve reproducibility.
 
