@@ -14,10 +14,12 @@ use std::path::{Path, PathBuf};
 
 pub fn main() -> Result<bool> {
     env_logger::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    let name = env!("CARGO_PKG_NAME").to_title_case();
+    let version = env!("CARGO_PKG_VERSION");
 
-    let app = App::new(env!("CARGO_PKG_NAME").to_title_case())
+    let app = App::new(&name)
     .setting(AppSettings::SubcommandRequiredElseHelp)
-    .version(env!("CARGO_PKG_VERSION"))
+    .version(version)
     .author(env!("CARGO_PKG_AUTHORS"))
     .about("A Build Artifact Cache for Git Repositories.")
     .arg(Arg::with_name("working_dir")
@@ -42,6 +44,8 @@ pub fn main() -> Result<bool> {
 
     // Parse command-line arguments.
     let matches = app.get_matches();
+
+    debug!("{} v{}", name, version);
 
     // Determine working directory.
     let working_dir: PathBuf = {
