@@ -108,7 +108,9 @@ build_and_run:
     - ./compile ...
 ```
 That's it, you have cached the `compiler` artifact without any requiring any specific features of
-your CI runner or management software.
+your CI runner or management software.  If you want to disable Memora for some CI runs (e.g.,
+*nightly*), set `disable_env_var` in the manifest to an environment variable that is defined during
+those runs.
 
 
 [build artifact]: https://en.wikipedia.org/wiki/Software_repository#Artifacts_and_packages
