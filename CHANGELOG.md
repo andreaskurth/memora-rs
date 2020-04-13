@@ -15,6 +15,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 
+# 0.1.1
+
+### Fixed
+- README: Add missing 'POSIX advisory record locks' URL.
+
+
 ## 0.1.0
 
 Initial release.
