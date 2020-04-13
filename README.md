@@ -56,10 +56,10 @@ artifacts:
     # to be added for outputs).
     #
     # Inputs are the paths your build flow uses to build the outputs of an artifact.  For example,
-    # this could be source code or configuration files.  Each input must be checked into the Git
-    # repository.  The list of inputs must be complete; that is, when none of the inputs changes
-    # between two Git objects (e.g., a commit), the entire artifact is considered identical for
-    # those two objects.  One input may be used in more than one artifact.
+    # this could be source code, Makefiles, or configuration files.  Each input must be checked into
+    # the Git repository.  The list of inputs must be complete; that is, when none of the inputs
+    # changes between two Git objects (e.g., a commit), the entire artifact is considered identical
+    # for those two objects.  One input may be used in more than one artifact.
     inputs:
       - a
       - b
