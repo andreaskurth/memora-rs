@@ -14,6 +14,8 @@ pub struct Manifest {
     pub cache_root_dir: PathBuf,
     /// The artifacts.
     pub artifacts: Artifacts,
+    /// Optional name of an environment variable that, if set, disables the cache.
+    pub disable_env_var: Option<String>,
 }
 impl Manifest {
     pub fn from_path(path: &Path) -> Result<Manifest> {

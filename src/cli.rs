@@ -9,6 +9,7 @@ use crate::git::Repo;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use inflector::Inflector;
 use log::{debug, info};
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -97,6 +98,20 @@ pub fn main() -> Result<bool> {
     };
     debug!("Memora manifest: {:?}.", manifest);
 
+    let disabled = match manifest.disable_env_var {
+        Some(e) => match env::var(&e) {
+            Ok(_) => {
+                info!(
+                    "{} disabled because environment variable \"{}\" is set.",
+                    name, e
+                );
+                true
+            }
+            _ => false,
+        },
+        _ => false,
+    };
+
     // Initialize cache.
     let cache: Cache = {
         let root_dir = match manifest.cache_root_dir.is_absolute() {
@@ -114,8 +129,14 @@ pub fn main() -> Result<bool> {
     debug!("Cache: {:?}.", cache);
 
     match matches.subcommand() {
-        ("get", Some(matches)) => get(&cache, matches),
-        ("insert", Some(matches)) => insert(&cache, matches),
+        ("get", Some(matches)) => match disabled {
+            false => get(&cache, matches),
+            true => Ok(false),
+        },
+        ("insert", Some(matches)) => match disabled {
+            false => insert(&cache, matches),
+            true => Ok(true),
+        },
         _ => Error::result("Unknown combination of subcommand and arguments!"),
     }
 }
