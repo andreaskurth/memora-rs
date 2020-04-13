@@ -113,3 +113,4 @@ your CI runner or management software.
 [build artifact]: https://en.wikipedia.org/wiki/Software_repository#Artifacts_and_packages
 [cache]: https://en.wikipedia.org/wiki/Cache_(computing)
 [Git repositories]: https://git-scm.com/
+[POSIX advisory record locks]: https://en.wikipedia.org/wiki/File_locking#In_Unix-like_systems
