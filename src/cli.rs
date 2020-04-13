@@ -41,6 +41,13 @@ pub fn main() -> Result<bool> {
                     .takes_value(true)
                     .required(true)
              )
+    )
+    .subcommand(SubCommand::with_name("lookup")
+            .about("Look an artifact up in the cache.  Exit zero iff the artifact is cached.")
+            .arg(Arg::with_name("artifact")
+                    .takes_value(true)
+                    .required(true)
+             )
     );
 
     // Parse command-line arguments.
@@ -137,6 +144,10 @@ pub fn main() -> Result<bool> {
             false => insert(&cache, matches),
             true => Ok(true),
         },
+        ("lookup", Some(matches)) => match disabled {
+            false => lookup(&cache, matches),
+            true => Ok(false),
+        },
         _ => Error::result("Unknown combination of subcommand and arguments!"),
     }
 }
@@ -190,5 +201,20 @@ pub fn insert(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
             Ok(true)
         }
         Err(e) => Err(e),
+    }
+}
+
+pub fn lookup(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
+    let artifact_name = artifact_name(matches)?;
+    let artifact = artifact(&cache, artifact_name)?;
+    match cache.cached_object(&artifact) {
+        Some(obj) => {
+            info!("Found artifact \"{}\" in {:?}.", artifact_name, obj.oid);
+            Ok(true)
+        }
+        None => {
+            info!("Artifact \"{}\" not found in cache.", artifact_name);
+            Ok(false)
+        }
     }
 }

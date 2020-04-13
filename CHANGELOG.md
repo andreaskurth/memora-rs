@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## Unreleased
 
 ### Added
+- Add `lookup` command to determine whether an artifact is cached without copying the outputs.
 
 ### Changed
 

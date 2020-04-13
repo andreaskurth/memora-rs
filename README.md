@@ -83,7 +83,8 @@ To obtain an artifact from the cache, execute `memora get <artifact name>` (e.g.
 in the example manifest).  This command will return zero if the cache contains the outputs of `foo`
 from a revision where the inputs have not changed with respect to the current head of the Git
 repository.  If the cache does not meet these requirements or an error occurred (e.g., I/O), the
-command will return non-zero.
+command will return non-zero.  If you want to know whether an artifact is cached without getting its
+outputs, use `memora lookup`.
 
 ### Inserting Artifact into Cache
 
