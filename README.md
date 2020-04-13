@@ -106,6 +106,8 @@ build_and_run:
       fi
     - ./compile ...
 ```
+That's it, you have cached the `compiler` artifact without any requiring any specific features of
+your CI runner or management software.
 
 
 [build artifact]: https://en.wikipedia.org/wiki/Software_repository#Artifacts_and_packages
