@@ -15,6 +15,9 @@ Memora does *not* implement its own storage solution but relies on an existing s
 (currently simply a locally mounted file system).  Support for other storage systems could be added
 on demand.
 
+A Memora cache can be safely used by an arbitrary number of concurrently running `memora` processes.
+Race conditions are prevented with [POSIX advisory record locks][].
+
 Memora is currently designed for use in a CI flow, but there are plans to extend it for use in the
 main development flow (e.g., to swap build artifacts as one switches Git branches), for sharing
 build artifacts among developers (e.g., colleagues can easily retrieve your build artifacts as they
