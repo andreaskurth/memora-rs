@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 ### Fixed
+- Implicitly add path of manifest to inputs of all artifacts.
 
 
 # 0.2.0

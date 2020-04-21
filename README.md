@@ -60,7 +60,8 @@ artifacts:
     # this could be source code, Makefiles, or configuration files.  Each input must be checked into
     # the Git repository.  The list of inputs must be complete; that is, when none of the inputs
     # changes between two Git objects (e.g., a commit), the entire artifact is considered identical
-    # for those two objects.  One input may be used in more than one artifact.
+    # for those two objects.  One input may be used in more than one artifact.  The path to the
+    # used `Memora.yml` manifest is an implicit input for every artifact.
     inputs:
       - a
       - b
