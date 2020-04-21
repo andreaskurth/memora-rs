@@ -4,11 +4,11 @@
 
 use crate::cache::Artifacts;
 use crate::error::{Error, Result};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 /// A Memora build artifact cache manifest.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Manifest {
     /// The root directory of the cache.
     pub cache_root_dir: PathBuf,

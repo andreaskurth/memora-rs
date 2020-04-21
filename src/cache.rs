@@ -7,7 +7,7 @@ use crate::git::{Object, Repo};
 use file_lock::FileLock;
 use log::{debug, error, trace};
 use regex::Regex;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs;
@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use std::string::String;
 
 /// A build artifact.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize, Debug)]
 pub struct Artifact {
     pub inputs: Vec<PathBuf>,
     pub outputs: Vec<PathBuf>,
