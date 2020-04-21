@@ -16,13 +16,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Implicitly add path of manifest to inputs of all artifacts.
 
 
-# 0.2.0
+## 0.2.0
 
 ### Added
 - Add `lookup` command to determine whether an artifact is cached without copying the outputs.
 
 
-# 0.1.1
+## 0.1.1
 
 ### Fixed
 - README: Add missing 'POSIX advisory record locks' URL.
