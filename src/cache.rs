@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use std::string::String;
 
 /// A build artifact.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Artifact {
     pub inputs: Vec<PathBuf>,
     pub outputs: Vec<PathBuf>,
