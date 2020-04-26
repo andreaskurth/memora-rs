@@ -71,7 +71,13 @@ impl Repo {
     /// Returns the last commit modifying `path`.  Returns `None` if there is no such commit.
     pub fn last_commit_on_path(&self, path: &Path) -> Option<Object> {
         self.cmd_output(&["log", "-n", "1", "--pretty=format:%H", "--", path_str(path)])
-            .map(|s| Object::new(s, self))
+            .and_then(|s| {
+                if s.is_empty() {
+                    None
+                } else {
+                    Some(Object::new(s, self))
+                }
+            })
     }
 
     /// Determine the ancestry order (Less = younger = further from root) for two objects.  Panics

@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 ### Fixed
+- `git::Repo::last_commit_on_path`: Return `None` when Git log for given path is empty.
 
 
 ## 0.2.1
