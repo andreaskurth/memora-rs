@@ -11,6 +11,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 ### Changed
+- `cache::Cache`: `artifacts` field is now private.  Get an individual artifact by name using the
+  `artifact` method.  Getting all artifact definitions is no longer possible outside `Cache`.
 
 ### Fixed
 

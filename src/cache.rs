@@ -28,7 +28,7 @@ pub type Artifacts = HashMap<String, Artifact>;
 pub struct Cache<'a> {
     pub path: PathBuf,
     pub repo: &'a Repo,
-    pub artifacts: &'a Artifacts, // TODO: make Artifacts owned?
+    artifacts: &'a Artifacts, // TODO: make Artifacts owned?
 }
 
 impl<'a> Cache<'a> {
