@@ -59,6 +59,7 @@ impl Repo {
         let output = cmd
             .output()
             .expect(&format!("could not get output of `{}'!", cmd_str));
+        trace!("{:?}", output);
         if output.status.success() {
             Some(trim_newline(String::from_utf8(output.stdout).expect(
                 &format!("output of `{}' contains non-UTF8 characters!", cmd_str),
