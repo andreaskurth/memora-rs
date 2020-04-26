@@ -80,6 +80,13 @@ impl<'a> Cache<'a> {
         self.lock(false)
     }
 
+    pub fn artifact(&self, name: &str) -> Result<&'a Artifact> {
+        match self.artifacts.get(name) {
+            None => Error::result(format!("Artifact \"{}\" is not defined!", name)),
+            Some(a) => Ok(a),
+        }
+    }
+
     fn objects(&self) -> HashSet<Object<'a>> {
         let obj_regex = Regex::new("^[[:xdigit:]]{40}$").unwrap();
         let mut objs = HashSet::new();

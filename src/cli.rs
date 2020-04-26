@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
-use crate::cache::{Artifact, Cache};
+use crate::cache::Cache;
 use crate::config::Manifest;
 use crate::error::{Error, Result};
 use crate::git::Repo;
@@ -159,16 +159,9 @@ fn artifact_name<'a>(matches: &'a ArgMatches) -> Result<&'a str> {
     }
 }
 
-fn artifact<'a>(cache: &'a Cache, name: &str) -> Result<&'a Artifact> {
-    match cache.artifacts.get(name) {
-        None => Error::result(format!("Artifact \"{}\" is not defined!", name)),
-        Some(a) => Ok(a),
-    }
-}
-
 pub fn get(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
     let artifact_name = artifact_name(matches)?;
-    let artifact = artifact(&cache, artifact_name)?;
+    let artifact = cache.artifact(artifact_name)?;
     match cache.get(&artifact) {
         Ok(Some(obj)) => {
             info!("Got artifact \"{}\" from {:?}.", artifact_name, obj.oid);
@@ -184,7 +177,7 @@ pub fn get(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
 
 pub fn insert(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
     let artifact_name = artifact_name(matches)?;
-    let artifact = artifact(&cache, artifact_name)?;
+    let artifact = cache.artifact(artifact_name)?;
     match cache.insert(&artifact) {
         Ok((false, obj)) => {
             info!(
@@ -206,7 +199,7 @@ pub fn insert(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
 
 pub fn lookup(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
     let artifact_name = artifact_name(matches)?;
-    let artifact = artifact(&cache, artifact_name)?;
+    let artifact = cache.artifact(artifact_name)?;
     match cache.cached_object(&artifact) {
         Some(obj) => {
             info!("Found artifact \"{}\" in {:?}.", artifact_name, obj.oid);
