@@ -5,7 +5,7 @@
 use crate::error::{Error, Result};
 use crate::git::{Object, Repo};
 use file_lock::FileLock;
-use log::{debug, error, trace};
+use log::{debug, error, trace, warn};
 use regex::Regex;
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -114,15 +114,23 @@ impl<'a> Cache<'a> {
     pub fn required_object(&self, artifact: &'a Artifact) -> Option<Object<'a>> {
         // TODO: Take diff against possibly unclean working directory.
         debug!("Determining last object for each input:");
-        let commits: Vec<Object> = artifact
+        let commits: Option<Vec<Object>> = artifact
             .inputs
             .iter()
             .map(|p| {
-                let commit = self.repo.last_commit_on_path(p).unwrap();
-                debug!("- {:?} requires \"{}\"", p, commit);
+                let commit = self.repo.last_commit_on_path(p);
+                if commit.is_some() {
+                    debug!("- {:?} requires \"{}\"", p, commit.clone().unwrap());
+                } else {
+                    warn!("Could not determine last Git object modifying {:?}!", p);
+                }
                 commit
             })
             .collect();
+        if commits.is_none() {
+            return None;
+        }
+        let commits = commits.unwrap();
         let req_obj = self.repo.youngest_object(&commits);
         if req_obj.is_some() {
             debug!("Required object: \"{}\".", req_obj.unwrap());

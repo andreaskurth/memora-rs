@@ -14,6 +14,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 - `git::Repo::last_commit_on_path`: Return `None` when Git log for given path is empty.
+- `cache::Cache::required_object`: Return `None` when required object for at least one input is
+  not known.
 
 
 ## 0.2.1
