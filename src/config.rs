@@ -29,7 +29,7 @@ impl Manifest {
             // Add path of Manifest to inputs of each Artifact.
             for (_, artifact) in &mut manifest.artifacts {
                 artifact.inputs.push(path.to_path_buf())
-            };
+            }
             manifest
         };
         Ok(manifest)
