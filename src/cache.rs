@@ -13,14 +13,25 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::string::String;
+use tuple_transpose::TupleTranspose;
 
 /// A build artifact.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Artifact {
+    /// Paths of the Artifact inputs.  Each path may be a directory or a
     pub inputs: Vec<PathBuf>,
     pub outputs: Vec<PathBuf>,
 }
 
+/// Named Artifacts.  The `String` key is the name of the `Artifact` value.
+///
+/// ## Pattern Artifacts
+/// If an Artifact name contains exactly one `%`, that artifact is a *Pattern Artifact*.  Inspired
+/// by [GNU Make's Pattern
+/// Rules](https://www.gnu.org/software/make/manual/html_node/Pattern-Intro.html), a Pattern
+/// Artifact allows one Artifact to match multiple build artifacts with similar input and output
+/// structures.  For this, the actual name given to the [`artifact` method of a
+/// cache](struct.Cache.html#method.artifact) is matched against patterns.
 pub type Artifacts = HashMap<String, Artifact>;
 
 /// A build artifact cache.
@@ -80,10 +91,80 @@ impl<'a> Cache<'a> {
         self.lock(false)
     }
 
-    pub fn artifact(&self, name: &str) -> Result<&'a Artifact> {
+    /// Get an artifact definition by name.
+    ///
+    /// ## Pattern Artifact
+    /// If `name` contains
+    pub fn artifact(&self, name: &str) -> Result<Artifact> {
+        // Match artifact names directly.
         match self.artifacts.get(name) {
-            None => Error::result(format!("Artifact \"{}\" is not defined!", name)),
-            Some(a) => Ok(a),
+            Some(a) => Ok(a.clone()), // Literal match
+            None => {
+                // No literal match => try pattern matches.
+                // Pattern artifacts are those containing exactly one `%` in their name.
+                let pattern_artifacts = self
+                    .artifacts
+                    .iter()
+                    .filter(|(name, _)| name.matches('%').count() == 1);
+                // Replace the `%` character by a word-type regex and match the given `name`.
+                let mut matching_captures = pattern_artifacts
+                    .filter_map(|(pattern, arti)| {
+                        let pattern =
+                            format!("^{}$", regex::escape(pattern).replace('%', "([[:word:]]+)"));
+                        match Regex::new(&pattern) {
+                            Ok(re) => re.captures(name).map(|c| (c, arti)),
+                            Err(_) => None,
+                        }
+                    })
+                    .inspect(|p| trace!("{:?}", p));
+
+                /// Substitute the first `%` placeholder in `path` with `actual`.
+                fn subst_placeholder(path: &Path, actual: &str) -> Result<PathBuf> {
+                    match path.to_str() {
+                        None => {
+                            Error::result(format!("Could not convert path {:?} to string!", path))
+                        }
+                        Some(s) => Ok(PathBuf::from(s.replacen('%', actual, 1))),
+                    }
+                }
+                // Currently, matching is only successful if there is exactly one match.
+                let capture = matching_captures.next();
+                match capture {
+                    // No pattern matches.
+                    None => Error::result(format!("Artifact \"{}\" is not defined!", name)),
+                    // At least one pattern matches.
+                    Some((capture, arti)) => {
+                        match matching_captures.count() {
+                            0 => {
+                                // Exactly one pattern matches.
+                                let replace_pattern = |paths: &[PathBuf]| -> Result<Vec<PathBuf>> {
+                                    // Unwrap string that matched the `%` placeholder from
+                                    // capture[1]. We may unwrap because we have ensured that the
+                                    // capture contains group 1.
+                                    let actual = capture.get(1).unwrap().as_str();
+                                    paths
+                                        .iter()
+                                        .map(|path| subst_placeholder(path, actual))
+                                        .collect()
+                                };
+                                (
+                                    replace_pattern(&arti.inputs),
+                                    replace_pattern(&arti.outputs),
+                                )
+                                    .transpose()
+                                    .map(|(i, o)| Artifact {
+                                        inputs: i,
+                                        outputs: o,
+                                    })
+                            }
+                            _ => Error::result(format!(
+                                "Multiple pattern artifacts match \"{}\"!",
+                                name
+                            )),
+                        }
+                    }
+                }
+            }
         }
     }
 

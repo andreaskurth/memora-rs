@@ -185,6 +185,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_yaml",
+ "tuple-transpose",
 ]
 
 [[package]]
@@ -379,6 +380,12 @@ checksum = "d40c6d1b69745a6ec6fb1ca717914848da4b44ae29d9b3080cbee91d72a69b14"
 dependencies = [
  "lazy_static",
 ]
+
+[[package]]
+name = "tuple-transpose"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1873fa6d09975af3b118126092a3988c4900b84026eb9c926e3c225cee70d18d"
 
 [[package]]
 name = "unicode-width"

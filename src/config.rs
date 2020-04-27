@@ -12,7 +12,13 @@ use std::path::{Path, PathBuf};
 pub struct Manifest {
     /// The root directory of the cache.
     pub cache_root_dir: PathBuf,
-    /// The artifacts.
+    /// The Artifacts.
+    ///
+    /// Each Artifact must have a name.  This name is used as `artifact` argument to Memora
+    /// subcommands, so it should be kept short.  The name of an Artifact must be unique among all
+    /// Artifacts in a Memora manifest.
+    ///
+    /// See [Artifacts](../cache/type.Artifacts.html) for more details on Artifacts.
     pub artifacts: Artifacts,
     /// Optional name of an environment variable that, if set, disables the cache.
     pub disable_env_var: Option<String>,
