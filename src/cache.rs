@@ -34,9 +34,9 @@ pub struct Cache<'a> {
 impl<'a> Cache<'a> {
     pub fn new(path: PathBuf, repo: &'a Repo, artifacts: &'a Artifacts) -> Cache<'a> {
         Cache {
-            path: path,
-            repo: repo,
-            artifacts: artifacts,
+            path,
+            repo,
+            artifacts,
         }
     }
 
