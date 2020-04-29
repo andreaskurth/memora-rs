@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+//! Configuration
+
 use crate::cache::Artifacts;
 use crate::error::{Error, Result};
 use serde::Deserialize;

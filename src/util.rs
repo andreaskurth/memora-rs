@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+//! Various utilities
+
 // CC BY-SA 4.0 Sven Marnach
 // Adapted from https://stackoverflow.com/a/55041833.
 pub fn trim_newline(mut s: String) -> String {

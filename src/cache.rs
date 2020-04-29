@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+//! Build Artifact Cache
+
 use crate::error::{Error, Result};
 use crate::git::{Object, Repo};
 use file_lock::FileLock;

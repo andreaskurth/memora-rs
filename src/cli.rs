@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+//! Command-Line Interface
+
 use crate::cache::Cache;
 use crate::config::Manifest;
 use crate::error::{Error, Result};

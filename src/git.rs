@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+//! Git API
+
 use crate::util::trim_newline;
 use log::trace;
 use std::cmp::Ordering;

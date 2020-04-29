@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+//! Filesystem utilities
+
 use crate::error::{Error, Result};
 use log::debug;
 use std::fs;

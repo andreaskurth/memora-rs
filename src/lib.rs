@@ -2,6 +2,11 @@
 //
 // SPDX-License-Identifier: (Apache-2.0 OR MIT)
 
+//! Memora is a build artifact cache for Git repositories.  Memora's purpose is to minimize
+//! redundant builds to save time and improve reproducibility.
+//!
+//! Please see the README for a general introduction.
+
 pub mod cache;
 pub mod cli;
 pub mod config;
