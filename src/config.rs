@@ -12,7 +12,9 @@ use std::path::{Path, PathBuf};
 /// A Memora build artifact cache manifest.
 #[derive(Deserialize, Debug)]
 pub struct Manifest {
-    /// The root directory of the cache.
+    /// The root directory of the build artifact cache for a Git repository.
+    ///
+    /// The path can be absolute or relative to the root of the Git repository.
     pub cache_root_dir: PathBuf,
     /// The Artifacts.
     ///
@@ -26,6 +28,10 @@ pub struct Manifest {
     pub disable_env_var: Option<String>,
 }
 impl Manifest {
+    /// Load a Manifest from the file at `path`.
+    ///
+    /// This function deserializes the Manifest file and adds the given `path` as input to each
+    /// artifact.
     pub fn from_path(path: &Path) -> Result<Manifest> {
         use std::fs::File;
         let file = File::open(path)
