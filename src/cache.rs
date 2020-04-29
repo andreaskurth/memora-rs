@@ -20,8 +20,25 @@ use tuple_transpose::TupleTranspose;
 /// A build artifact.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Artifact {
-    /// Paths of the Artifact inputs.  Each path may be a directory or a
+    /// Paths of the Artifact inputs, relative to the root of a repository.  Each path may be a file
+    /// or a directory.  Each input must be checked into the Git repository.
+    ///
+    /// Inputs are the paths your build flow uses to generate the outputs of an artifact (e.g.,
+    /// source code, Makefiles, configuration files).  The list of inputs must be complete; that is,
+    /// when none of the inputs changes between two Git objects, the entire Artifact is considered
+    /// identical for those two objects.  Any one input may be used in more than one Artifact.
+    ///
+    /// If the Artifact is part of a Manifest file loaded with the
+    /// [`from_path`](../config/struct.Manifest.html#method.from_path) function, the Manifest file
+    /// is an implicit input dependency of the Artifact.
     pub inputs: Vec<PathBuf>,
+    /// Paths of the Artifact outputs, relative to the root of a repository.  Each path may be a
+    /// file or a directory.
+    ///
+    /// Outputs are the paths your build flow creates or modifies when it generates an artifact
+    /// (e.g., executables, shared object files).  The list of outputs must contain all files
+    /// required to "use" the artifact but can (and in most cases should) omit intermediate build
+    /// products.
     pub outputs: Vec<PathBuf>,
 }
 
