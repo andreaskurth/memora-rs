@@ -31,6 +31,9 @@ pub struct Artifact {
     /// If the Artifact is part of a Manifest file loaded with the
     /// [`from_path`](../config/struct.Manifest.html#method.from_path) function, the Manifest file
     /// is an implicit input dependency of the Artifact.
+    ///
+    /// If the Artifact is a [Pattern Artifact](type.Artifacts.html#PatternArtifacts), each path may
+    /// contain up to one `%`.
     pub inputs: Vec<PathBuf>,
     /// Paths of the Artifact outputs, relative to the root of a repository.  Each path may be a
     /// file or a directory.
@@ -45,12 +48,21 @@ pub struct Artifact {
 /// Named Artifacts.  The `String` key is the name of the `Artifact` value.
 ///
 /// ## Pattern Artifacts
+///
 /// If an Artifact name contains exactly one `%`, that artifact is a *Pattern Artifact*.  Inspired
 /// by [GNU Make's Pattern
 /// Rules](https://www.gnu.org/software/make/manual/html_node/Pattern-Intro.html), a Pattern
 /// Artifact allows one Artifact to match multiple build artifacts with similar input and output
 /// structures.  For this, the actual name given to the [`artifact` method of a
-/// cache](struct.Cache.html#method.artifact) is matched against patterns.
+/// cache](struct.Cache.html#method.artifact) is matched against the name of the artifact, which
+/// contains `%` for a pattern artifact.  The `%` is treated as a wildcard that matches one or
+/// multiple word characters.
+///
+/// At most one Pattern Artifact is allowed to match the given name.  If multiple Pattern Artifacts
+/// would match, the match fails.
+///
+/// The substring matching the wildcard is substituted for the `%` character in all inputs of the
+/// Pattern Artifact.
 pub type Artifacts = HashMap<String, Artifact>;
 
 /// A build artifact cache.
