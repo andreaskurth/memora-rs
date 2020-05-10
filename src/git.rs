@@ -220,11 +220,26 @@ mod tests {
         Ok((repo, tmp_dir, file))
     }
 
+    fn rand_string(rng: &mut dyn rand::RngCore, n_chars: usize) -> String {
+        use rand::distributions::Alphanumeric;
+        use rand::Rng;
+        rng.sample_iter(Alphanumeric).take(n_chars).collect()
+    }
+
+    fn setup_with_commits_on_file(rel_path: &str, n_commits: usize) -> Result<(Repo, TempDir)> {
+        let (repo, tmp_dir, mut file) = setup_with_file(rel_path)?;
+        let mut rng = rand::thread_rng();
+        for _i in 0..n_commits {
+            write_file(&mut file, &rand_string(&mut rng, 10))?;
+            repo.cmd_assert(&["add", rel_path]);
+            repo.cmd_assert(&["commit", "-m", &rand_string(&mut rng, 10)]);
+        }
+        Ok((repo, tmp_dir))
+    }
+
     #[test]
     fn last_commit_on_existing_path_with_single_commit() -> Result<()> {
-        let (repo, _tmp_dir, _file) = setup_with_file("some_file")?;
-        repo.cmd_assert(&["add", "some_file"]);
-        repo.cmd_assert(&["commit", "-m", "add some file"]);
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 1)?;
         let act = repo.last_commit_on_path(Path::new("some_file"));
         assert_eq!(act, repo.last_commit());
         Ok(())
@@ -240,12 +255,7 @@ mod tests {
 
     #[test]
     fn last_commit_on_existing_path_with_two_commits() -> Result<()> {
-        let (repo, tmp_dir, mut file) = setup_with_file("some_file")?;
-        repo.cmd_assert(&["add", "some_file"]);
-        repo.cmd_assert(&["commit", "-m", "add some file"]);
-        write_file(&mut file, "some content")?;
-        repo.cmd_assert(&["add", "some_file"]);
-        repo.cmd_assert(&["commit", "-m", "add some content"]);
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 2)?;
         let act = repo.last_commit_on_path(Path::new("some_file"));
         assert_eq!(act, repo.last_commit());
         Ok(())
