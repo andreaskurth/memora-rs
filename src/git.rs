@@ -156,3 +156,93 @@ impl<'a> Object<'a> {
         output.is_some()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::{Error, Result};
+    use tempdir::TempDir;
+
+    /// Test helper methods for a Git repository.
+    impl Repo {
+        fn cmd_assert(&self, params: &[&str]) {
+            assert!(
+                self.cmd_output(params).is_some(),
+                format!("git {}", params.join(" "))
+            );
+        }
+        fn last_commit(&self) -> Option<Object> {
+            self.cmd_output(&["rev-parse", "HEAD"])
+                .and_then(|oup| oup.lines().next().map(|l| l.to_string()))
+                .map(|head_commit| Object::new(head_commit.to_string(), &self))
+        }
+    }
+
+    fn create_file<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<std::fs::File> {
+        std::fs::File::create(&path)
+            .map_err(|cause| Error::chain(format!("Could not create file {:?}:", path), cause))
+    }
+
+    fn write_file(f: &mut std::fs::File, s: &str) -> Result<()> {
+        use std::io::Write;
+        write!(f, "{}", s)
+            .map_err(|cause| Error::chain(format!("Could not write to file {:?}", f), cause))
+    }
+
+    fn setup() -> Result<(Repo, TempDir)> {
+        let tmp = TempDir::new("memora-test-git")
+            .map_err(|cause| Error::chain("Could not create temporary directory:", cause))?;
+        let repo = Repo::new(tmp.path().to_path_buf());
+        repo.cmd_assert(&["init"]);
+        repo.cmd_assert(&["config", "--local", "user.name", "Test"]);
+        repo.cmd_assert(&["config", "--local", "user.email", "test@localhost"]);
+        Ok((repo, tmp))
+    }
+
+    fn setup_with_file(rel_path: &str) -> Result<(Repo, TempDir)> {
+        let (repo, tmp_dir) = setup()?;
+        let fp = tmp_dir.path().join(rel_path);
+        create_file(fp)?;
+        Ok((repo, tmp_dir))
+    }
+
+    #[test]
+    fn last_commit_on_existing_path_with_single_commit() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_file("some_file")?;
+        repo.cmd_assert(&["add", "some_file"]);
+        repo.cmd_assert(&["commit", "-m", "add some file"]);
+        let act = repo.last_commit_on_path(Path::new("some_file"));
+        assert_eq!(act, repo.last_commit());
+        Ok(())
+    }
+
+    #[test]
+    fn last_commit_on_existing_path_with_no_commit() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_file("some_file")?;
+        let act = repo.last_commit_on_path(Path::new("some_file"));
+        assert_eq!(act, None);
+        Ok(())
+    }
+
+    #[test]
+    fn last_commit_on_existing_path_with_two_commits() -> Result<()> {
+        let (repo, tmp_dir) = setup_with_file("some_file")?;
+        repo.cmd_assert(&["add", "some_file"]);
+        repo.cmd_assert(&["commit", "-m", "add some file"]);
+        let mut oup = create_file(tmp_dir.path().join("some_file"))?;
+        write_file(&mut oup, "some content")?;
+        repo.cmd_assert(&["add", "some_file"]);
+        repo.cmd_assert(&["commit", "-m", "add some content"]);
+        let act = repo.last_commit_on_path(Path::new("some_file"));
+        assert_eq!(act, repo.last_commit());
+        Ok(())
+    }
+
+    #[test]
+    fn last_commit_on_nonexistent_path() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_file("some_file")?;
+        let act = repo.last_commit_on_path(Path::new("some_other_file"));
+        assert_eq!(act, None);
+        Ok(())
+    }
+}
