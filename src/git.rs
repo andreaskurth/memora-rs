@@ -126,6 +126,27 @@ impl Repo {
     pub fn oldest_object<'a>(&'a self, objects: &'a HashSet<Object<'a>>) -> Result<&'a Object> {
         self.first_ordered_object(objects, Ordering::Greater)
     }
+
+    /// Determine the oldest common descendant of a set of objects on the current branch.  Returns
+    /// an error if any two of the objects do not have a common descendant.
+    pub fn oldest_common_descendant_on_current_branch<'a>(
+        &'a self,
+        objects: &'a HashSet<Object<'a>>,
+    ) -> Result<Object<'a>> {
+        if objects.len() == 0 {
+            return Error::result("no objects given");
+        }
+        let youngest_object = self.youngest_object(&objects);
+        if youngest_object.is_ok() {
+            return youngest_object.map(|obj| obj.clone());
+        }
+        let descendants: HashSet<Object> = objects
+            .into_iter()
+            .flat_map(|obj| obj.descendants_on_current_branch())
+            .collect();
+        let oldest_descendant = self.oldest_object(&descendants);
+        oldest_descendant.map(|obj| Object::new(obj.oid.clone(), &self))
+    }
 }
 
 impl<'a> Display for Object<'a> {
@@ -422,6 +443,26 @@ mod tests {
             vec
         };
         assert_eq!(ancestor.descendants_on_current_branch(), descendants);
+        Ok(())
+    }
+
+    #[test]
+    fn oldest_common_descendant_on_current_branch_with_merge() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 1)?;
+        repo.cmd_assert(&["checkout", "-b", "some_branch"]);
+        rand_commits_on_file(&repo, "some_file", 1)?;
+        let branch_commit = repo.last_commit().unwrap();
+        repo.cmd_assert(&["checkout", "master"]);
+        rand_commits_on_file(&repo, "another_file", 1)?;
+        let master_commit = repo.last_commit().unwrap();
+        repo.cmd_assert(&["merge", "--no-edit", "some_branch"]);
+        let merge_commit = repo.last_commit().unwrap();
+        rand_commits_on_file(&repo, "some_file", 1)?;
+        assert_eq!(
+            repo.oldest_common_descendant_on_current_branch(&hashset! {branch_commit.clone(),
+            master_commit.clone()}).unwrap(),
+            merge_commit
+        );
         Ok(())
     }
 }

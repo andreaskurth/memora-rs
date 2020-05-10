@@ -12,7 +12,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add support for Pattern Artifacts, which allows one Artifact definition to match many actual
   artifacts; see the documentation of `cache::Artifacts` for details.
 - `git::Object`: Implement `PartialOrd`.
-- `git::Repo`: Add `oldest_object` method as counterpart of `youngest_object`.
+- `git::Repo`:
+  - Add `oldest_object` method as counterpart of `youngest_object`.
+  - Add `oldest_common_descendant_on_current_branch` method to determine the oldest common
+    descendant of a set of objects on the current branch.
 
 ### Changed
 - `cache::Cache`: `artifacts` field is now private.  Get an individual artifact by name using the
