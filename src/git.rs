@@ -229,14 +229,20 @@ mod tests {
         rng.sample_iter(Alphanumeric).take(n_chars).collect()
     }
 
-    fn setup_with_commits_on_file(rel_path: &str, n_commits: usize) -> Result<(Repo, TempDir)> {
-        let (repo, tmp_dir, mut file) = setup_with_file(rel_path)?;
+    fn rand_commits_on_file(repo: &Repo, rel_path: &str, n_commits: usize) -> Result<()> {
         let mut rng = rand::thread_rng();
+        let mut file = create_file(repo.path.join(rel_path))?;
         for _i in 0..n_commits {
             write_file(&mut file, &rand_string(&mut rng, 10))?;
             repo.cmd_assert(&["add", rel_path]);
             repo.cmd_assert(&["commit", "-m", &rand_string(&mut rng, 10)]);
         }
+        Ok(())
+    }
+
+    fn setup_with_commits_on_file(rel_path: &str, n_commits: usize) -> Result<(Repo, TempDir)> {
+        let (repo, tmp_dir, _file) = setup_with_file(rel_path)?;
+        rand_commits_on_file(&repo, rel_path, n_commits)?;
         Ok((repo, tmp_dir))
     }
 
