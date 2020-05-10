@@ -246,6 +246,20 @@ mod tests {
         Ok((repo, tmp_dir))
     }
 
+    fn create_two_incomparable_commits<'a>(
+        repo: &'a Repo,
+        path: &str,
+    ) -> Result<(Object<'a>, Object<'a>)> {
+        repo.cmd_assert(&["checkout", "-b", "some_branch"]);
+        rand_commits_on_file(&repo, path, 1)?;
+        let some_commit = repo.last_commit().unwrap();
+        repo.cmd_assert(&["checkout", "master"]);
+        repo.cmd_assert(&["checkout", "-b", "another_branch"]);
+        rand_commits_on_file(&repo, path, 1)?;
+        let another_commit = repo.last_commit().unwrap();
+        Ok((some_commit, another_commit))
+    }
+
     #[test]
     fn last_commit_on_existing_path_with_single_commit() -> Result<()> {
         let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 1)?;
