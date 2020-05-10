@@ -10,7 +10,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 - Add support for Pattern Artifacts, which allows one Artifact definition to match many actual
-  artifacts; see the documentation of `cache::Artifacts` for details.
+  artifacts; see the [documentation of `cache::Artifacts`][PatternArtifacts] for details.
 - `git::Object`: Implement `PartialOrd`.
 - `git::Repo`:
   - Add `oldest_object` method as counterpart of `youngest_object`.
@@ -60,3 +60,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## 0.1.0
 
 Initial release.
+
+
+[PatternArtifacts]: https://docs.rs/memora/latest/memora/cache/type.Artifacts.html#PatternArtifacts
