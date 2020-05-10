@@ -460,7 +460,8 @@ mod tests {
         rand_commits_on_file(&repo, "some_file", 1)?;
         assert_eq!(
             repo.oldest_common_descendant_on_current_branch(&hashset! {branch_commit.clone(),
-            master_commit.clone()}).unwrap(),
+            master_commit.clone()})
+                .unwrap(),
             merge_commit
         );
         Ok(())
