@@ -450,11 +450,11 @@ mod tests {
     fn oldest_common_descendant_on_current_branch_with_merge() -> Result<()> {
         let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 1)?;
         repo.cmd_assert(&["checkout", "-b", "some_branch"]);
-        rand_commits_on_file(&repo, "some_file", 1)?;
-        let branch_commit = repo.last_commit().unwrap();
+        rand_commits_on_file(&repo, "some_file", 2)?;
+        let branch_commit = repo.past_commit(1).unwrap();
         repo.cmd_assert(&["checkout", "master"]);
-        rand_commits_on_file(&repo, "another_file", 1)?;
-        let master_commit = repo.last_commit().unwrap();
+        rand_commits_on_file(&repo, "another_file", 20)?;
+        let master_commit = repo.past_commit(10).unwrap();
         repo.cmd_assert(&["merge", "--no-edit", "some_branch"]);
         let merge_commit = repo.last_commit().unwrap();
         rand_commits_on_file(&repo, "some_file", 1)?;
