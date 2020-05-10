@@ -189,6 +189,22 @@ impl<'a> Object<'a> {
         ]);
         output.is_some()
     }
+
+    /// Get descendants of this commit on the current branch, in chronological order.
+    fn descendants_on_current_branch(&self) -> Vec<Object<'a>> {
+        match self.repo.cmd_output(&[
+            "rev-list",
+            "--ancestry-path",
+            "--reverse",
+            &format!("{}..", self.oid),
+        ]) {
+            Some(s) => s
+                .lines()
+                .map(|line| Object::new(line.to_string(), self.repo))
+                .collect(),
+            None => vec![],
+        }
+    }
 }
 
 #[cfg(test)]
@@ -391,6 +407,21 @@ mod tests {
         let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 1)?;
         let (some_commit, another_commit) = create_two_incomparable_commits(&repo, "some_file")?;
         assert_eq!(some_commit.partial_cmp(&another_commit), None);
+        Ok(())
+    }
+
+    #[test]
+    fn descendants_on_current_branch() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 5)?;
+        let ancestor = repo.past_commit(3).unwrap();
+        let descendants = {
+            let mut vec = Vec::new();
+            for i in (0..3).rev() {
+                vec.push(repo.past_commit(i).unwrap());
+            }
+            vec
+        };
+        assert_eq!(ancestor.descendants_on_current_branch(), descendants);
         Ok(())
     }
 }
