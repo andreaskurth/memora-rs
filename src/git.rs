@@ -4,6 +4,7 @@
 
 //! Git API
 
+use crate::error::{Error, Result};
 use crate::util::trim_newline;
 use log::trace;
 use std::cmp::Ordering;
@@ -83,20 +84,27 @@ impl Repo {
             })
     }
 
-    /// Determine the ancestry order (Less = younger = further from root) for two objects.  Panics
-    /// if the two objects do not have a common ancestry.
-    pub fn object_cmp(&self, a: &Object, b: &Object) -> Ordering {
-        a.partial_cmp(b).expect(&format!(
-            "Cannot determine ancestry order between commits {:?} and {:?}",
-            a, b
-        ))
+    /// Returns the youngest of a list of objects or an error if the list was empty or any two of
+    /// the objects are incomparable.
+    pub fn youngest_object<'a>(&'a self, objects: &'a Vec<Object<'a>>) -> Result<&'a Object> {
+        if objects.len() == 0 {
+            return Error::result("no objects given");
+        }
+        if objects.len() == 1 {
+            return Ok(&objects[0]);
+        }
+        let mut iter = objects.iter();
+        objects
+            .iter()
+            .try_fold(iter.next().unwrap(), |youngest, obj| {
+                match youngest.partial_cmp(&obj) {
+                    Some(Ordering::Greater) => Ok(obj),
+                    None => Error::result(format!("{:?} and {:?} are incomparable", youngest, obj)),
+                    _ => Ok(youngest),
+                }
+            })
     }
 
-    pub fn youngest_object<'a>(&'a self, objects: &'a Vec<Object<'a>>) -> Option<&'a Object> {
-        if objects.len() == 0 {
-            return None;
-        }
-        Some(objects.iter().min_by(|a, b| self.object_cmp(a, b)).unwrap())
     }
 }
 

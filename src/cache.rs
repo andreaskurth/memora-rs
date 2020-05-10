@@ -251,16 +251,16 @@ impl<'a> Cache<'a> {
         }
         let commits = commits.unwrap();
         let req_obj = self.repo.youngest_object(&commits);
-        if req_obj.is_some() {
-            debug!("Required object: \"{}\".", req_obj.unwrap());
+        if req_obj.is_ok() {
+            debug!("Required object: {:?}.", req_obj);
             // FIXME: Is the lifetime of Repo for Object declared wrong?  We should be able to
             // return (a clone of) `req_obj` without the following two lines ..
             let obj = req_obj.unwrap();
             Some(Object::new(obj.oid.clone(), self.repo))
         } else {
             error!(
-                "Could not determine required object for artifact {:#?}!",
-                artifact
+                "Could not determine required object for artifact {:#?}: {:?}",
+                artifact, req_obj
             );
             None
         }
