@@ -350,6 +350,11 @@ mod tests {
                 .unwrap(),
             &younger
         );
+        assert_eq!(
+            repo.youngest_object(&hashset! {younger.clone(), older.clone()})
+                .unwrap(),
+            &younger
+        );
         Ok(())
     }
 
