@@ -11,6 +11,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 - Add support for Pattern Artifacts, which allows one Artifact definition to match many actual
   artifacts; see the documentation of `cache::Artifacts` for details.
+- `git::Object`: Implement `PartialOrd`.
 
 ### Changed
 - `cache::Cache`: `artifacts` field is now private.  Get an individual artifact by name using the

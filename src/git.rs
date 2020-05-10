@@ -86,18 +86,10 @@ impl Repo {
     /// Determine the ancestry order (Less = younger = further from root) for two objects.  Panics
     /// if the two objects do not have a common ancestry.
     pub fn object_cmp(&self, a: &Object, b: &Object) -> Ordering {
-        if a == b {
-            return Ordering::Equal;
-        } else if a.is_descendant_of(b) {
-            return Ordering::Less;
-        } else if a.is_ancestor_of(b) {
-            return Ordering::Greater;
-        } else {
-            panic!(
-                "Cannot determine ancestry order between commits {:?} and {:?}",
-                a, b
-            );
-        }
+        a.partial_cmp(b).expect(&format!(
+            "Cannot determine ancestry order between commits {:?} and {:?}",
+            a, b
+        ))
     }
 
     pub fn youngest_object<'a>(&'a self, objects: &'a Vec<Object<'a>>) -> Option<&'a Object> {
@@ -111,6 +103,20 @@ impl Repo {
 impl<'a> Display for Object<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.oid)
+    }
+}
+
+impl<'a> PartialOrd for Object<'a> {
+    fn partial_cmp(&self, other: &Object) -> Option<Ordering> {
+        if self == other {
+            return Some(Ordering::Equal);
+        } else if self.is_descendant_of(other) {
+            return Some(Ordering::Less);
+        } else if self.is_ancestor_of(other) {
+            return Some(Ordering::Greater);
+        } else {
+            return None; // incomparable
+        }
     }
 }
 
