@@ -186,7 +186,10 @@ mod tests {
             );
         }
         fn last_commit(&self) -> Option<Object> {
-            self.cmd_output(&["rev-parse", "HEAD"])
+            self.past_commit(0)
+        }
+        fn past_commit(&self, n_commits_ago: usize) -> Option<Object> {
+            self.cmd_output(&["rev-parse", &format!("HEAD~{}", n_commits_ago)])
                 .and_then(|oup| oup.lines().next().map(|l| l.to_string()))
                 .map(|head_commit| Object::new(head_commit.to_string(), &self))
         }
