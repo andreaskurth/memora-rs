@@ -341,4 +341,30 @@ mod tests {
             .is_err());
         Ok(())
     }
+
+    #[test]
+    fn partial_cmp_different_objects() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 5)?;
+        let younger = repo.past_commit(1).unwrap();
+        let older = repo.past_commit(4).unwrap();
+        assert_eq!(younger.partial_cmp(&older), Some(Ordering::Less));
+        assert_eq!(older.partial_cmp(&younger), Some(Ordering::Greater));
+        Ok(())
+    }
+
+    #[test]
+    fn partial_cmp_identical_objects() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 5)?;
+        let younger = repo.past_commit(1).unwrap();
+        assert_eq!(younger.partial_cmp(&younger), Some(Ordering::Equal));
+        Ok(())
+    }
+
+    #[test]
+    fn partial_cmp_incomparable_objects() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 1)?;
+        let (some_commit, another_commit) = create_two_incomparable_commits(&repo, "some_file")?;
+        assert_eq!(some_commit.partial_cmp(&another_commit), None);
+        Ok(())
+    }
 }
