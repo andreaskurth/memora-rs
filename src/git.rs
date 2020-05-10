@@ -213,16 +213,16 @@ mod tests {
         Ok((repo, tmp))
     }
 
-    fn setup_with_file(rel_path: &str) -> Result<(Repo, TempDir)> {
+    fn setup_with_file(rel_path: &str) -> Result<(Repo, TempDir, std::fs::File)> {
         let (repo, tmp_dir) = setup()?;
         let fp = tmp_dir.path().join(rel_path);
-        create_file(fp)?;
-        Ok((repo, tmp_dir))
+        let file = create_file(fp)?;
+        Ok((repo, tmp_dir, file))
     }
 
     #[test]
     fn last_commit_on_existing_path_with_single_commit() -> Result<()> {
-        let (repo, _tmp_dir) = setup_with_file("some_file")?;
+        let (repo, _tmp_dir, _file) = setup_with_file("some_file")?;
         repo.cmd_assert(&["add", "some_file"]);
         repo.cmd_assert(&["commit", "-m", "add some file"]);
         let act = repo.last_commit_on_path(Path::new("some_file"));
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn last_commit_on_existing_path_with_no_commit() -> Result<()> {
-        let (repo, _tmp_dir) = setup_with_file("some_file")?;
+        let (repo, _tmp_dir, _file) = setup_with_file("some_file")?;
         let act = repo.last_commit_on_path(Path::new("some_file"));
         assert_eq!(act, None);
         Ok(())
@@ -240,11 +240,10 @@ mod tests {
 
     #[test]
     fn last_commit_on_existing_path_with_two_commits() -> Result<()> {
-        let (repo, tmp_dir) = setup_with_file("some_file")?;
+        let (repo, tmp_dir, mut file) = setup_with_file("some_file")?;
         repo.cmd_assert(&["add", "some_file"]);
         repo.cmd_assert(&["commit", "-m", "add some file"]);
-        let mut oup = create_file(tmp_dir.path().join("some_file"))?;
-        write_file(&mut oup, "some content")?;
+        write_file(&mut file, "some content")?;
         repo.cmd_assert(&["add", "some_file"]);
         repo.cmd_assert(&["commit", "-m", "add some content"]);
         let act = repo.last_commit_on_path(Path::new("some_file"));
@@ -254,7 +253,7 @@ mod tests {
 
     #[test]
     fn last_commit_on_nonexistent_path() -> Result<()> {
-        let (repo, _tmp_dir) = setup_with_file("some_file")?;
+        let (repo, _tmp_dir, _file) = setup_with_file("some_file")?;
         let act = repo.last_commit_on_path(Path::new("some_other_file"));
         assert_eq!(act, None);
         Ok(())
