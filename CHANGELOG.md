@@ -16,8 +16,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 - `cache::Cache`: `artifacts` field is now private.  Get an individual artifact by name using the
   `artifact` method.  Getting all artifact definitions is no longer possible outside `Cache`.
-- `git::Repo`: `youngest_object` method now returns a `Result` instead of an `Option` and no longer
-  panics if any two given `objects` are incomparable.
+- `git::Repo`:
+  - `youngest_object` method now returns a `Result` instead of an `Option` and no longer panics if
+    any two given `objects` are incomparable.
+  - `youngest_object` method now takes a `HashSet` as `objects` argument, because the `objects` are
+    unordered.
 
 ### Fixed
 

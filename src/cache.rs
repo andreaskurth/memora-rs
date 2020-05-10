@@ -233,7 +233,7 @@ impl<'a> Cache<'a> {
     pub fn required_object(&self, artifact: &'a Artifact) -> Option<Object<'a>> {
         // TODO: Take diff against possibly unclean working directory.
         debug!("Determining last object for each input:");
-        let commits: Option<Vec<Object>> = artifact
+        let commits: Option<HashSet<Object>> = artifact
             .inputs
             .iter()
             .map(|p| {

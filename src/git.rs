@@ -8,6 +8,7 @@ use crate::error::{Error, Result};
 use crate::util::trim_newline;
 use log::trace;
 use std::cmp::Ordering;
+use std::collections::HashSet;
 use std::fmt::{self, Display, Formatter};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -84,27 +85,40 @@ impl Repo {
             })
     }
 
-    /// Returns the youngest of a list of objects or an error if the list was empty or any two of
-    /// the objects are incomparable.
-    pub fn youngest_object<'a>(&'a self, objects: &'a Vec<Object<'a>>) -> Result<&'a Object> {
+    /// Returns the first of a set of objects according to a given ordering.  Returns an error if
+    /// the set is empty or any two of the objects are incomparable.
+    fn first_ordered_object<'a>(
+        &'a self,
+        objects: &'a HashSet<Object<'a>>,
+        ord: Ordering,
+    ) -> Result<&'a Object> {
         if objects.len() == 0 {
             return Error::result("no objects given");
         }
         if objects.len() == 1 {
-            return Ok(&objects[0]);
+            return Ok(objects.iter().next().unwrap());
         }
         let mut iter = objects.iter();
         objects
             .iter()
             .try_fold(iter.next().unwrap(), |youngest, obj| {
-                match youngest.partial_cmp(&obj) {
-                    Some(Ordering::Greater) => Ok(obj),
+                match obj.partial_cmp(&youngest) {
+                    Some(o) => {
+                        if o == ord {
+                            Ok(obj)
+                        } else {
+                            Ok(youngest)
+                        }
+                    }
                     None => Error::result(format!("{:?} and {:?} are incomparable", youngest, obj)),
-                    _ => Ok(youngest),
                 }
             })
     }
 
+    /// Returns the youngest (= furthest from root) of a set of objects.  Returns an error if the
+    /// set is empty or any two of the objects are incomparable.
+    pub fn youngest_object<'a>(&'a self, objects: &'a HashSet<Object<'a>>) -> Result<&'a Object> {
+        self.first_ordered_object(objects, Ordering::Less)
     }
 }
 
@@ -175,6 +189,7 @@ impl<'a> Object<'a> {
 mod tests {
     use super::*;
     use crate::error::{Error, Result};
+    use maplit::hashset;
     use tempdir::TempDir;
 
     /// Test helper methods for a Git repository.
@@ -295,7 +310,7 @@ mod tests {
     #[test]
     fn youngest_object_no_commit() -> Result<()> {
         let (repo, _tmp_dir, _file) = setup_with_file("some_file")?;
-        assert!(repo.youngest_object(&vec![]).is_err());
+        assert!(repo.youngest_object(&hashset! {}).is_err());
         Ok(())
     }
 
@@ -303,7 +318,7 @@ mod tests {
     fn youngest_object_single_commit() -> Result<()> {
         let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 5)?;
         let obj = repo.last_commit().unwrap();
-        assert_eq!(repo.youngest_object(&vec![obj.clone()]).unwrap(), &obj);
+        assert_eq!(repo.youngest_object(&hashset! {obj.clone()}).unwrap(), &obj);
         Ok(())
     }
 
@@ -312,7 +327,7 @@ mod tests {
         let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 7)?;
         let obj = repo.last_commit().unwrap();
         assert_eq!(
-            repo.youngest_object(&vec![obj.clone(), obj.clone()])
+            repo.youngest_object(&hashset! {obj.clone(), obj.clone()})
                 .unwrap(),
             &obj
         );
@@ -325,7 +340,7 @@ mod tests {
         let younger = repo.last_commit().unwrap();
         let older = repo.past_commit(4).unwrap();
         assert_eq!(
-            repo.youngest_object(&vec![older.clone(), younger.clone()])
+            repo.youngest_object(&hashset! {older.clone(), younger.clone()})
                 .unwrap(),
             &younger
         );
@@ -337,7 +352,7 @@ mod tests {
         let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 7)?;
         let (some_commit, another_commit) = create_two_incomparable_commits(&repo, "some_file")?;
         assert!(repo
-            .youngest_object(&vec![some_commit.clone(), another_commit.clone()])
+            .youngest_object(&hashset! {some_commit.clone(), another_commit.clone()})
             .is_err());
         Ok(())
     }
