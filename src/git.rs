@@ -140,11 +140,18 @@ impl Repo {
         if youngest_object.is_ok() {
             return youngest_object.map(|obj| obj.clone());
         }
-        let descendants: HashSet<Object> = objects
-            .into_iter()
-            .flat_map(|obj| obj.descendants_on_current_branch())
-            .collect();
-        let oldest_descendant = self.oldest_object(&descendants);
+        let mut descendants = objects
+            .iter()
+            .map(|obj| obj
+                 .descendants_on_current_branch()
+                 .iter()
+                 .map(|obj| Object::new(obj.oid.clone(), &self))
+                 .collect::<HashSet<_>>());
+        let intersection: HashSet<Object> = descendants
+            .next()
+            .map(|set| descendants.fold(set, |set1, set2| &set1 & &set2))
+            .unwrap_or_default();
+        let oldest_descendant = self.oldest_object(&intersection);
         oldest_descendant.map(|obj| Object::new(obj.oid.clone(), &self))
     }
 }
