@@ -13,6 +13,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 ### Fixed
+
+
+## 0.3.1
+
+### Fixed
 - `git::Repo::oldest_common_descendant_on_current_branch`: Add missing intersection of descendants.
 
 
