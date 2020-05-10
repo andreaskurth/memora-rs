@@ -250,7 +250,7 @@ impl<'a> Cache<'a> {
             return None;
         }
         let commits = commits.unwrap();
-        let req_obj = self.repo.youngest_object(&commits);
+        let req_obj = self.repo.oldest_common_descendant_on_current_branch(&commits);
         if req_obj.is_ok() {
             debug!("Required object: {:?}.", req_obj);
             // FIXME: Is the lifetime of Repo for Object declared wrong?  We should be able to
