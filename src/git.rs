@@ -120,6 +120,12 @@ impl Repo {
     pub fn youngest_object<'a>(&'a self, objects: &'a HashSet<Object<'a>>) -> Result<&'a Object> {
         self.first_ordered_object(objects, Ordering::Less)
     }
+
+    /// Returns the oldest (= closest to root) of a set of objects.  Returns an error if the set is
+    /// empty or any of two of the objects are incomparable.
+    pub fn oldest_object<'a>(&'a self, objects: &'a HashSet<Object<'a>>) -> Result<&'a Object> {
+        self.first_ordered_object(objects, Ordering::Greater)
+    }
 }
 
 impl<'a> Display for Object<'a> {
