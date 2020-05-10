@@ -291,4 +291,54 @@ mod tests {
         assert_eq!(act, None);
         Ok(())
     }
+
+    #[test]
+    fn youngest_object_no_commit() -> Result<()> {
+        let (repo, _tmp_dir, _file) = setup_with_file("some_file")?;
+        assert!(repo.youngest_object(&vec![]).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn youngest_object_single_commit() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 5)?;
+        let obj = repo.last_commit().unwrap();
+        assert_eq!(repo.youngest_object(&vec![obj.clone()]).unwrap(), &obj);
+        Ok(())
+    }
+
+    #[test]
+    fn youngest_object_two_identical_commits() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 7)?;
+        let obj = repo.last_commit().unwrap();
+        assert_eq!(
+            repo.youngest_object(&vec![obj.clone(), obj.clone()])
+                .unwrap(),
+            &obj
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn youngest_object_two_different_commits() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 7)?;
+        let younger = repo.last_commit().unwrap();
+        let older = repo.past_commit(4).unwrap();
+        assert_eq!(
+            repo.youngest_object(&vec![older.clone(), younger.clone()])
+                .unwrap(),
+            &younger
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn youngest_object_two_incomparable_commits() -> Result<()> {
+        let (repo, _tmp_dir) = setup_with_commits_on_file("some_file", 7)?;
+        let (some_commit, another_commit) = create_two_incomparable_commits(&repo, "some_file")?;
+        assert!(repo
+            .youngest_object(&vec![some_commit.clone(), another_commit.clone()])
+            .is_err());
+        Ok(())
+    }
 }
