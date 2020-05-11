@@ -18,3 +18,14 @@ pub fn write_file(f: &mut std::fs::File, s: &str) -> Result<()> {
         .map_err(|cause| Error::chain(format!("Could not write to file {:?}", f), cause))
 }
 
+/// Create symbolic link (like `ln -s <target> <link_name>`).
+pub fn create_symlink<P: AsRef<Path>>(target: P, link_name: P) -> Result<()> {
+    Ok(
+        std::os::unix::fs::symlink(target.as_ref(), link_name.as_ref()).map_err(|cause| {
+            Error::chain(
+                format!("Could not create symlink {:?}:", link_name.as_ref()),
+                cause,
+            )
+        })?,
+    )
+}

@@ -121,3 +121,115 @@ where
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::{Error, Result};
+    use crate::test_util::{create_file, create_symlink, write_file};
+    use std::path::PathBuf;
+    use tempdir::TempDir;
+
+    fn setup() -> Result<(TempDir, TempDir)> {
+        fn create_tmp_dir(suffix: &str) -> Result<TempDir> {
+            TempDir::new(&format!("memora-test-fs{}", suffix))
+                .map_err(|cause| Error::chain("Could not create temporary directory:", cause))
+        }
+        let src_dir = create_tmp_dir("-src")?;
+        let dst_dir = create_tmp_dir("-dst")?;
+        Ok((src_dir, dst_dir))
+    }
+
+    fn setup_single_file(path: &Path) -> Result<(TempDir, TempDir, PathBuf, PathBuf)> {
+        let (src_dir, dst_dir) = setup()?;
+        let src_path = src_dir.path().join(&path);
+        if let Some(parent) = src_path.parent() {
+            create_dir(parent)?;
+        };
+        let mut src_file = create_file(&src_path)?;
+        write_file(&mut src_file, "some content")?;
+        let dst_path = dst_dir.path().join(&path);
+        Ok((src_dir, dst_dir, src_path, dst_path))
+    }
+
+    fn diff<P: AsRef<Path> + std::fmt::Debug>(f1: P, f2: P) -> Result<()> {
+        if file_diff::diff(f1.as_ref().to_str().unwrap(), f2.as_ref().to_str().unwrap()) {
+            Ok(())
+        } else {
+            Error::result(format!("file {:?} differs from file {:?}", &f1, &f2))
+        }
+    }
+
+    #[test]
+    /// Copy file that is new at destination.
+    fn copy_file_new() -> Result<()> {
+        let (_src_dir, _dst_dir, src_path, dst_path) = setup_single_file(Path::new("some_file"))?;
+        copy(&src_path, &dst_path)?;
+        diff(&src_path, &dst_path)
+    }
+
+    #[test]
+    /// Copy file that exists at destination, overwriting the latter.
+    fn copy_file_existing() -> Result<()> {
+        let (_src_dir, _dst_dir, src_path, dst_path) = setup_single_file(Path::new("some_file"))?;
+        let mut dst_file = create_file(&dst_path)?;
+        write_file(&mut dst_file, "other content")?;
+        copy(&src_path, &dst_path)?;
+        diff(&src_path, &dst_path)
+    }
+
+    #[test]
+    /// Copy file that is new at destination and is part of a subdirectory that does not exist at
+    /// destination.
+    fn copy_file_new_subdir() -> Result<()> {
+        let (_src_dir, _dst_dir, src_path, dst_path) =
+            setup_single_file(Path::new("subdir/some_file"))?;
+        copy(&src_path, &dst_path)?;
+        diff(&src_path, &dst_path)
+    }
+
+    #[test]
+    /// Copy symlink.
+    fn copy_symlink_to_nonexisting_target() -> Result<()> {
+        let (src_dir, dst_dir) = setup()?;
+        let src_path = src_dir.path().join("sym_link");
+        create_symlink(Path::new("sym_target"), &src_path)?;
+        let dst_path = dst_dir.path().join("sym_link");
+        copy(&src_path, &dst_path)?;
+        assert_eq!(src_path.read_link().unwrap(), dst_path.read_link().unwrap());
+        Ok(())
+    }
+
+    #[test]
+    /// Copy directory with a symlink to a nonexisting file to another directory that partially
+    /// exists.
+    fn copy_dir() -> Result<()> {
+        let (src_dir, dst_dir, src_file, dst_file) =
+            setup_single_file(Path::new("some/subdir/file"))?;
+        {
+            create_parents(&dst_file)?;
+            let mut dst_file = create_file(&dst_file)?;
+            write_file(&mut dst_file, "bad")?;
+        }
+        let src_path = src_dir.path().join("some");
+        let nonexisting = Path::new("some/nonexisting/path");
+        create_symlink(nonexisting, &src_path.join("some_symlink"))?;
+        let dst_path = dst_dir.path().join("some");
+        create_dir(dst_path.join("subdir"))?;
+        create_file(dst_path.join("subdir/another_file"))?;
+        create_dir(dst_path.join("another_subdir"))?;
+        copy(&src_path, &dst_path)?;
+        assert!(dst_file.is_file());
+        diff(&src_file, &dst_file)?;
+        assert!(dst_path.join("subdir/another_file").is_file());
+        assert!(dst_path.join("another_subdir").is_dir());
+        let dst_symlink = dst_path.join("some_symlink");
+        assert!(dst_symlink
+            .symlink_metadata()
+            .unwrap()
+            .file_type()
+            .is_symlink());
+        assert_eq!(dst_symlink.read_link().unwrap(), nonexisting);
+        Ok(())
+    }
+}
