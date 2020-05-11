@@ -239,6 +239,7 @@ impl<'a> Object<'a> {
 mod tests {
     use super::*;
     use crate::error::{Error, Result};
+    use crate::test_util::{create_file, write_file};
     use maplit::hashset;
     use tempdir::TempDir;
 
@@ -258,17 +259,6 @@ mod tests {
                 .and_then(|oup| oup.lines().next().map(|l| l.to_string()))
                 .map(|head_commit| Object::new(head_commit.to_string(), &self))
         }
-    }
-
-    fn create_file<P: AsRef<Path> + std::fmt::Debug>(path: P) -> Result<std::fs::File> {
-        std::fs::File::create(&path)
-            .map_err(|cause| Error::chain(format!("Could not create file {:?}:", path), cause))
-    }
-
-    fn write_file(f: &mut std::fs::File, s: &str) -> Result<()> {
-        use std::io::Write;
-        write!(f, "{}", s)
-            .map_err(|cause| Error::chain(format!("Could not write to file {:?}", f), cause))
     }
 
     fn setup() -> Result<(Repo, TempDir)> {
