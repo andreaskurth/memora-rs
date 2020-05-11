@@ -28,7 +28,12 @@ where
             cause,
         )
     })?;
-    if from.is_dir() {
+    // Query metadata *without* following symlink.
+    let metadata = from
+        .symlink_metadata()
+        .map_err(|cause| Error::chain(format!("Could not get metadata of {:?}", from), cause))?;
+    let filetype = metadata.file_type();
+    if filetype.is_dir() {
         // Copy `from` directory recursively using `fs_extra::dir::copy`.
         let copy_options = fs_extra::dir::CopyOptions {
             overwrite: true,
@@ -43,7 +48,7 @@ where
                 cause,
             )
         })?;
-    } else {
+    } else if filetype.is_file() {
         // Copy `from` file using standard `fs::copy`.
         fs::copy(from, to).map_err(|cause| {
             Error::chain(
@@ -51,6 +56,8 @@ where
                 cause,
             )
         })?;
+    } else {
+        Error::result(format!("Can not copy file type {:?}", filetype))?;
     }
     Ok(())
 }
