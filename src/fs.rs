@@ -56,6 +56,19 @@ where
                 cause,
             )
         })?;
+    } else if filetype.is_symlink() {
+        let link_target = std::fs::read_link(from).map_err(|cause| {
+            Error::chain(
+                format!("Could not read source symlink {:?}:", from),
+                cause,
+            )
+        })?;
+        std::os::unix::fs::symlink(link_target, to).map_err(|cause| {
+            Error::chain(
+                format!("Could not create destination symlink {:?}:", to),
+                cause,
+            )
+        })?;
     } else {
         Error::result(format!("Can not copy file type {:?}", filetype))?;
     }
