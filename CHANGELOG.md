@@ -11,11 +11,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 ### Changed
+
+### Fixed
+
+
+## 0.4.0
+
+### Changed
 - `fs::copy` no longer follows and resolves symlinks.  As a result, symlinks are now inserted and
   retrieved verbatim from the build artifact cache.  Additionally, it is now possible to cache
   artifacts with circular or nonexistent symlink targets.
-
-### Fixed
 
 
 ## 0.3.1
