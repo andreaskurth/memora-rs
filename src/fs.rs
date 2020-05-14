@@ -189,12 +189,25 @@ mod tests {
     }
 
     #[test]
-    /// Copy symlink.
+    /// Copy symlink to nonexisting target.
     fn copy_symlink_to_nonexisting_target() -> Result<()> {
         let (src_dir, dst_dir) = setup()?;
         let src_path = src_dir.path().join("sym_link");
         create_symlink(Path::new("sym_target"), &src_path)?;
         let dst_path = dst_dir.path().join("sym_link");
+        copy(&src_path, &dst_path)?;
+        assert_eq!(src_path.read_link().unwrap(), dst_path.read_link().unwrap());
+        Ok(())
+    }
+
+    #[test]
+    /// Copy symlink to existing target.
+    fn copy_symlink_to_existing_target() -> Result<()> {
+        let (src_dir, dst_dir) = setup()?;
+        let src_path = src_dir.path().join("sym_link");
+        create_symlink(Path::new("sym_target"), &src_path)?;
+        let dst_path = dst_dir.path().join("sym_link");
+        create_file(&dst_path)?;
         copy(&src_path, &dst_path)?;
         assert_eq!(src_path.read_link().unwrap(), dst_path.read_link().unwrap());
         Ok(())
