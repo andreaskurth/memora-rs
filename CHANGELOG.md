@@ -13,6 +13,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 ### Fixed
+- `cache::Cache::find_candidates` now also includes descendants when the ancestor itself is a
+  candidate.
 
 
 ## 0.4.1

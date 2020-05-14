@@ -356,15 +356,15 @@ impl<'a> Cache<'a> {
             &subpath, &ancestor
         );
         // Simplest case: the required path exists for the ancestor itself.
+        let mut set = HashSet::new();
         let direct_path = self.subpath_in_object(&ancestor, subpath);
         if direct_path.is_some() {
             debug!("Ancestor itself is a candidate.");
-            let mut set = HashSet::new();
-            set.insert(ancestor);
-            return set;
+            set.insert(ancestor.clone());
+        } else {
+            trace!("Ancestor itself is not a candidate.");
         }
-        trace!("Ancestor itself is not a candidate.");
-        // Otherwise, we try to find another entry in the cache that matches the requirements.
+        // Additionally, we determine all other entries in the cache that match the requirements.
         // Start with all objects in the cache.
         let objs: HashSet<Object<'a>> = self.objects();
         let candidates: HashSet<Object<'a>> = objs
@@ -389,6 +389,7 @@ impl<'a> Cache<'a> {
             .inspect(|obj| trace!("Does not change any input: \"{}\"", obj))
             .map(|o| o.clone())
             .collect();
+        let candidates = &candidates | &set;
         debug!(
             "Candidates are: {:?}.",
             candidates
