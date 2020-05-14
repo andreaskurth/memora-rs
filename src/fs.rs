@@ -27,7 +27,7 @@ pub fn file_type<P: AsRef<Path>>(path: P) -> Result<std::fs::FileType> {
     Ok(metadata.file_type())
 }
 
-/// Copy symlink without dereferencing it.
+/// Copy symlink without dereferencing it.  If the target already exists, it is overwritten.
 fn copy_symlink<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> Result<()> {
     let from = from.as_ref();
     let to = to.as_ref();
@@ -35,6 +35,8 @@ fn copy_symlink<P: AsRef<Path>, Q: AsRef<Path>>(from: P, to: Q) -> Result<()> {
     let link_target = std::fs::read_link(from).map_err(|cause| {
         Error::chain(format!("Could not read source symlink {:?}:", from), cause)
     })?;
+    // Remove `to` to prevent collisions if it exists.
+    let _foo = std::fs::remove_file(to);
     std::os::unix::fs::symlink(link_target, to).map_err(|cause| {
         Error::chain(
             format!("Could not create destination symlink {:?}:", to),
