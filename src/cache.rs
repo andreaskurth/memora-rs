@@ -343,7 +343,7 @@ impl<'a> Cache<'a> {
 
     /// Find the cache objects that (all of the following)
     /// - contain `subpath`
-    /// - are descendants of `ancestor` (or `parent` itself)
+    /// - are descendants of `ancestor` (or `ancestor` itself)
     /// - correspond to a commit that does not modify `subpath` since `parent`.
     fn find_candidates(
         &self,
