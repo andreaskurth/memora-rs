@@ -13,6 +13,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 ### Fixed
+
+
+## 0.4.1
+
+### Fixed
 - `fs::copy` now also overwrites symlinks.
 
 
