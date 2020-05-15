@@ -13,6 +13,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 ### Fixed
+
+
+## 0.4.2
+
+### Fixed
 - `cache::Cache::find_candidates` now also includes descendants when the ancestor itself is a
   candidate.
 
