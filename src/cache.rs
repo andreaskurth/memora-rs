@@ -5,11 +5,13 @@
 //! Build Artifact Cache
 
 use crate::error::{Error, Result};
-use crate::git::{Object, Repo};
+use crate::git::{Object, Oid, Repo};
+use derivative::Derivative;
 use file_lock::FileLock;
 use log::{debug, error, trace, warn};
 use regex::Regex;
 use serde::Deserialize;
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs;
@@ -66,11 +68,14 @@ pub struct Artifact {
 pub type Artifacts = HashMap<String, Artifact>;
 
 /// A build artifact cache.
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Cache<'a> {
     pub path: PathBuf,
     pub repo: &'a Repo,
     artifacts: &'a Artifacts, // TODO: make Artifacts owned?
+    #[derivative(Debug = "ignore")]
+    objects_path_identity_cache: RefCell<HashMap<(Oid, Oid, PathBuf), bool>>,
 }
 
 impl<'a> Cache<'a> {
@@ -79,6 +84,7 @@ impl<'a> Cache<'a> {
             path,
             repo,
             artifacts,
+            objects_path_identity_cache: RefCell::new(HashMap::new()),
         }
     }
 
@@ -355,6 +361,22 @@ impl<'a> Cache<'a> {
         Ok((true, req_obj))
     }
 
+    fn objects_identical_for_path(&self, a: &Object, b: &Object, path: &Path) -> bool {
+        let key = (a.oid.clone(), b.oid.clone(), path.to_path_buf());
+        if let Some(entry) = self.objects_path_identity_cache.borrow().get(&key) {
+            return *entry;
+        }
+        let key_mirrored = (b.oid.clone(), a.oid.clone(), path.to_path_buf());
+        if let Some(entry) = self.objects_path_identity_cache.borrow().get(&key_mirrored) {
+            return *entry;
+        }
+        let entry = a.path_is_same_as(b, path);
+        self.objects_path_identity_cache
+            .borrow_mut()
+            .insert(key, entry);
+        entry
+    }
+
     /// Find the cache objects that (all of the following)
     /// - contain `subpath`
     /// - are descendants of `ancestor` (or `ancestor` itself)
@@ -393,7 +415,7 @@ impl<'a> Cache<'a> {
             .filter(|obj| {
                 let mut identical = true;
                 for inp in inputs {
-                    if !obj.path_is_same_as(&ancestor, inp) {
+                    if !self.objects_identical_for_path(&obj, &ancestor, inp) {
                         identical = false;
                         break;
                     }
