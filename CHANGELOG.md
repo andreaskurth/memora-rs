@@ -11,6 +11,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 ### Changed
+
+### Fixed
+
+
+## 0.4.3
+
+### Changed
 - `cache::Cache::cached_object` now returns `None` as soon as the intersection set of candidate
   objects for the outputs is empty.  Before, that function computed the candidates of all outputs
   before computing the intersection.
@@ -18,8 +25,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   drastically reduces the number of `git diff` invocations.
 - `git::Repo` now caches ancestry relations among objects.  This drastically reduces the number of
   `git rev-list` invocations.
-
-### Fixed
 
 
 ## 0.4.2
