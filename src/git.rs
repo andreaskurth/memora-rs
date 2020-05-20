@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// A Git object identifier.
-type Oid = String; // TODO: better Oid?
+pub type Oid = String; // TODO: better Oid?
 
 /// A Git repository.
 #[derive(Derivative)]
