@@ -6,9 +6,11 @@
 
 use crate::error::{Error, Result};
 use crate::util::trim_newline;
+use derivative::Derivative;
 use log::trace;
+use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{self, Display, Formatter};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -17,9 +19,12 @@ use std::process::Command;
 type Oid = String; // TODO: better Oid?
 
 /// A Git repository.
-#[derive(PartialEq, Hash, Eq, Debug)]
+#[derive(Derivative)]
+#[derivative(PartialEq, Hash, Eq, Debug)]
 pub struct Repo {
     pub path: PathBuf,
+    #[derivative(PartialEq = "ignore", Hash = "ignore", Debug = "ignore")]
+    ancestry_cache: RefCell<HashMap<(Oid, Oid), bool>>,
 }
 
 /// A Git object.
@@ -37,7 +42,10 @@ fn path_str(path: &Path) -> &str {
 impl Repo {
     /// Creates a Repo object for a path.
     pub fn new(path: PathBuf) -> Repo {
-        Repo { path: path }
+        Repo {
+            path,
+            ancestry_cache: RefCell::new(HashMap::new()),
+        }
     }
 
     /// Creates a Git command on this repository.
@@ -153,6 +161,24 @@ impl Repo {
         let oldest_descendant = self.oldest_object(&intersection);
         oldest_descendant.map(|obj| Object::new(obj.oid.clone(), &self))
     }
+
+    fn object_is_ancestor_of(&self, ancestor: &Object, other: &Object) -> bool {
+        let key = (ancestor.oid.clone(), other.oid.clone());
+        if let Some(entry) = self.ancestry_cache.borrow().get(&key) {
+            return *entry;
+        }
+        let output = self.cmd_output(&[
+            "rev-list",
+            "--ancestry-path",
+            &format!("{}..{}", ancestor.oid, other.oid),
+        ]);
+        let entry = match output {
+            None => false,
+            Some(s) => s.len() > 0,
+        };
+        self.ancestry_cache.borrow_mut().insert(key, entry);
+        entry
+    }
 }
 
 impl<'a> Display for Object<'a> {
@@ -187,15 +213,7 @@ impl<'a> Object<'a> {
         if self.repo != obj.repo {
             return false;
         }
-        let output = self.repo.cmd_output(&[
-            "rev-list",
-            "--ancestry-path",
-            &format!("{}..{}", self.oid, obj.oid),
-        ]);
-        match output {
-            None => false,
-            Some(s) => s.len() > 0,
-        }
+        self.repo.object_is_ancestor_of(&self, obj)
     }
 
     pub fn is_descendant_of(&self, obj: &Object) -> bool {
