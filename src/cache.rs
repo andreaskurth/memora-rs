@@ -275,17 +275,31 @@ impl<'a> Cache<'a> {
             return None;
         }
         let ancestor = req_obj.unwrap();
-        let mut candidates = artifact
-            .outputs
-            .iter()
-            .map(|oup| self.find_candidates(ancestor.clone(), oup, &artifact.inputs));
-        let intersection = candidates
-            .next()
-            .map(|set| candidates.fold(set, |set1, set2| &set1 & &set2));
+        let mut oup_iter = artifact.outputs.iter();
+        // Closure to determine candidates for an output of `artifact`.
+        let oup_candidates = |oup| self.find_candidates(ancestor.clone(), oup, &artifact.inputs);
+        // Compute the initial set for the reduction from the candidates of the first output.
+        let initial_candidates = match oup_iter.next() {
+            Some(oup) => oup_candidates(oup),
+            None => HashSet::new(),
+        };
+        // Return if the initial set is empty.
+        if initial_candidates.len() == 0 {
+            return None;
+        }
+        // Fold the remaining outputs by intersecting the set of candidates of each output.
+        let intersection = oup_iter.try_fold(initial_candidates, |intersection, oup| {
+            let new_intersection = &intersection & &oup_candidates(oup);
+            match new_intersection.len() {
+                0 => None,
+                _ => Some(new_intersection),
+            }
+        });
         debug!(
             "Intersection of cache candidates: {:?}, selecting one of them.",
             intersection
         );
+        // Pick the first object from the (unordered) intersection set.
         intersection.and_then(|set| set.iter().next().map(|obj| obj.clone()))
     }
 
