@@ -11,8 +11,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 ### Changed
+- `cache::Cache`: The pattern in Pattern Artifacts now matches three characters (`-`, `.`, and `+`)
+  in addition to word characters (i.e., alphanumerics and underscore `_`).  As the pattern now
+  matches non-greedily, original behavior if a pattern does not contain one of the three characters
+  but the string after the pattern does is preserved.
 
 ### Fixed
+- `cache::Cache`: The pattern in Pattern Artifacts now matches non-greedily.
 
 
 ## 0.4.3

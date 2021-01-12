@@ -58,7 +58,9 @@ pub struct Artifact {
 /// structures.  For this, the actual name given to the [`artifact` method of a
 /// cache](struct.Cache.html#method.artifact) is matched against the name of the artifact, which
 /// contains `%` for a pattern artifact.  The `%` is treated as a wildcard that matches one or
-/// multiple word characters.
+/// multiple characters among alphanumerics (`[[:alnum:]]`), underscore (`_`), dash (`-`), dot
+/// (`.`), and plus (`+`) non-greedily.  Rationale: Those characters are commonly used in file names
+/// but not commonly used to separate paths or path components (whereas `:`, `/`, and others are).
 ///
 /// At most one Pattern Artifact is allowed to match the given name.  If multiple Pattern Artifacts
 /// would match, the match fails.
@@ -143,11 +145,14 @@ impl<'a> Cache<'a> {
                     .artifacts
                     .iter()
                     .filter(|(name, _)| name.matches('%').count() == 1);
-                // Replace the `%` character by a word-type regex and match the given `name`.
+                // Replace the `%` character by the defined regex (see above) and match the given
+                // `name`.
                 let mut matching_captures = pattern_artifacts
                     .filter_map(|(pattern, arti)| {
-                        let pattern =
-                            format!("^{}$", regex::escape(pattern).replace('%', "([[:word:]]+)"));
+                        let pattern = format!(
+                            "^{}$",
+                            regex::escape(pattern).replace('%', r"([[[:alnum:]]_\-.+]+?)")
+                        );
                         match Regex::new(&pattern) {
                             Ok(re) => re.captures(name).map(|c| (c, arti)),
                             Err(_) => None,
