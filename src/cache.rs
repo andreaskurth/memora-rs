@@ -44,6 +44,9 @@ pub struct Artifact {
     /// (e.g., executables, shared object files).  The list of outputs must contain all files
     /// required to "use" the artifact but can (and in most cases should) omit intermediate build
     /// products.
+    ///
+    /// If the Artifact is a [Pattern Artifact](type.Artifacts.html#PatternArtifacts), each path may
+    /// contain up to one `%`.
     pub outputs: Vec<PathBuf>,
 }
 
@@ -65,8 +68,8 @@ pub struct Artifact {
 /// At most one Pattern Artifact is allowed to match the given name.  If multiple Pattern Artifacts
 /// would match, the match fails.
 ///
-/// The substring matching the wildcard is substituted for the `%` character in all inputs of the
-/// Pattern Artifact.
+/// The substring matching the wildcard is substituted for the `%` character in all inputs and
+/// outputs of the Pattern Artifact.
 pub type Artifacts = HashMap<String, Artifact>;
 
 /// A build artifact cache.

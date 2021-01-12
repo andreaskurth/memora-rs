@@ -17,7 +17,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   but the string after the pattern does is preserved.
 
 ### Fixed
-- `cache::Cache`: The pattern in Pattern Artifacts now matches non-greedily.
+- `cache::Cache`:
+  - The pattern in Pattern Artifacts now matches non-greedily.
+  - Fix documentation of outputs of Pattern Artifacts.
 
 
 ## 0.4.3
