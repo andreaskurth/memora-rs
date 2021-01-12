@@ -131,9 +131,6 @@ impl<'a> Cache<'a> {
     }
 
     /// Get an artifact definition by name.
-    ///
-    /// ## Pattern Artifact
-    /// If `name` contains
     pub fn artifact(&self, name: &str) -> Result<Artifact> {
         // Match artifact names directly.
         match self.artifacts.get(name) {
