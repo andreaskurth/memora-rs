@@ -400,7 +400,7 @@ impl<'a> Cache<'a> {
         let mut set = HashSet::new();
         let direct_path = self.subpath_in_object(&ancestor, subpath);
         if direct_path.is_some() {
-            debug!("Ancestor itself is a candidate.");
+            trace!("Ancestor itself is a candidate.");
             set.insert(ancestor.clone());
         } else {
             trace!("Ancestor itself is not a candidate.");
