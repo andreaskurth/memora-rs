@@ -124,4 +124,4 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Initial release.
 
 
-[PatternArtifacts]: https://docs.rs/memora/latest/memora/cache/type.Artifacts.html#PatternArtifacts
+[PatternArtifacts]: https://docs.rs/memora/latest/memora/cache/type.Artifact.html#PatternArtifacts

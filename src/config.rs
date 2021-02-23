@@ -41,7 +41,7 @@ impl Manifest {
                 Error::chain(format!("Syntax error in manifest {:?}!", path), cause)
             })?;
             // Add path of Manifest to inputs of each Artifact.
-            for (_, artifact) in &mut manifest.artifacts {
+            for artifact in &mut manifest.artifacts {
                 artifact.inputs.push(path.to_path_buf())
             }
             manifest

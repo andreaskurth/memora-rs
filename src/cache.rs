@@ -22,6 +22,28 @@ use tuple_transpose::TupleTranspose;
 /// A build artifact.
 #[derive(Deserialize, Debug, Clone)]
 pub struct Artifact {
+    /// Name of the Artifact.
+    ///
+    /// ## Pattern Artifacts
+    ///
+    /// If an Artifact name contains exactly one `%`, that artifact is a *Pattern Artifact*.
+    /// Inspired by [GNU Make's Pattern
+    /// Rules](https://www.gnu.org/software/make/manual/html_node/Pattern-Intro.html), a Pattern
+    /// Artifact allows one Artifact to match multiple build artifacts with similar input and output
+    /// structures.  For this, the actual name given to the [`artifact` method of a
+    /// cache](struct.Cache.html#method.artifact) is matched against the name of the artifact, which
+    /// contains `%` for a Pattern Artifact.  The `%` is treated as a wildcard that matches one or
+    /// multiple characters among alphanumerics (`[[:alnum:]]`), underscore (`_`), dash (`-`), dot
+    /// (`.`), and plus (`+`) non-greedily.  Rationale: Those characters are commonly used in file
+    /// names but not commonly used to separate paths or path components (whereas `:`, `/`, and
+    /// others are).
+    ///
+    /// At most one Pattern Artifact is allowed to match the given name.  If multiple Pattern
+    /// Artifacts would match, the match fails.
+    ///
+    /// The substring matching the wildcard is substituted for the `%` character in all inputs and
+    /// outputs of the Pattern Artifact.
+    pub name: String,
     /// Paths of the Artifact inputs, relative to the root of a repository.  Each path may be a file
     /// or a directory.  Each input must be checked into the Git repository.
     ///
@@ -34,8 +56,7 @@ pub struct Artifact {
     /// [`from_path`](../config/struct.Manifest.html#method.from_path) function, the Manifest file
     /// is an implicit input dependency of the Artifact.
     ///
-    /// If the Artifact is a [Pattern Artifact](type.Artifacts.html#PatternArtifacts), each path may
-    /// contain up to one `%`.
+    /// If the Artifact is a Pattern Artifact, each path may contain up to one `%`.
     pub inputs: Vec<PathBuf>,
     /// Paths of the Artifact outputs, relative to the root of a repository.  Each path may be a
     /// file or a directory.
@@ -45,32 +66,12 @@ pub struct Artifact {
     /// required to "use" the artifact but can (and in most cases should) omit intermediate build
     /// products.
     ///
-    /// If the Artifact is a [Pattern Artifact](type.Artifacts.html#PatternArtifacts), each path may
-    /// contain up to one `%`.
+    /// If the Artifact is a Pattern Artifact, each path may contain up to one `%`.
     pub outputs: Vec<PathBuf>,
 }
 
-/// Named Artifacts.  The `String` key is the name of the `Artifact` value.
-///
-/// ## Pattern Artifacts
-///
-/// If an Artifact name contains exactly one `%`, that artifact is a *Pattern Artifact*.  Inspired
-/// by [GNU Make's Pattern
-/// Rules](https://www.gnu.org/software/make/manual/html_node/Pattern-Intro.html), a Pattern
-/// Artifact allows one Artifact to match multiple build artifacts with similar input and output
-/// structures.  For this, the actual name given to the [`artifact` method of a
-/// cache](struct.Cache.html#method.artifact) is matched against the name of the artifact, which
-/// contains `%` for a pattern artifact.  The `%` is treated as a wildcard that matches one or
-/// multiple characters among alphanumerics (`[[:alnum:]]`), underscore (`_`), dash (`-`), dot
-/// (`.`), and plus (`+`) non-greedily.  Rationale: Those characters are commonly used in file names
-/// but not commonly used to separate paths or path components (whereas `:`, `/`, and others are).
-///
-/// At most one Pattern Artifact is allowed to match the given name.  If multiple Pattern Artifacts
-/// would match, the match fails.
-///
-/// The substring matching the wildcard is substituted for the `%` character in all inputs and
-/// outputs of the Pattern Artifact.
-pub type Artifacts = HashMap<String, Artifact>;
+/// Artifacts of a cache.
+pub type Artifacts = Vec<Artifact>;
 
 /// A build artifact cache.
 #[derive(Derivative)]
@@ -136,7 +137,7 @@ impl<'a> Cache<'a> {
     /// Get an artifact definition by name.
     pub fn artifact(&self, name: &str) -> Result<Artifact> {
         // Match artifact names directly.
-        match self.artifacts.get(name) {
+        match self.artifacts.iter().find(|arti| arti.name == name) {
             Some(a) => Ok(a.clone()), // Literal match
             None => {
                 // No literal match => try pattern matches.
@@ -144,14 +145,14 @@ impl<'a> Cache<'a> {
                 let pattern_artifacts = self
                     .artifacts
                     .iter()
-                    .filter(|(name, _)| name.matches('%').count() == 1);
+                    .filter(|arti| arti.name.matches('%').count() == 1);
                 // Replace the `%` character by the defined regex (see above) and match the given
                 // `name`.
                 let mut matching_captures = pattern_artifacts
-                    .filter_map(|(pattern, arti)| {
+                    .filter_map(|arti| {
                         let pattern = format!(
                             "^{}$",
-                            regex::escape(pattern).replace('%', r"([[[:alnum:]]_\-.+]+?)")
+                            regex::escape(&arti.name).replace('%', r"([[[:alnum:]]_\-.+]+?)")
                         );
                         match Regex::new(&pattern) {
                             Ok(re) => re.captures(name).map(|c| (c, arti)),
@@ -179,11 +180,11 @@ impl<'a> Cache<'a> {
                         match matching_captures.count() {
                             0 => {
                                 // Exactly one pattern matches.
+                                let actual = capture.get(1).unwrap().as_str();
                                 let replace_pattern = |paths: &[PathBuf]| -> Result<Vec<PathBuf>> {
                                     // Unwrap string that matched the `%` placeholder from
                                     // capture[1]. We may unwrap because we have ensured that the
                                     // capture contains group 1.
-                                    let actual = capture.get(1).unwrap().as_str();
                                     paths
                                         .iter()
                                         .map(|path| subst_placeholder(path, actual))
@@ -195,6 +196,7 @@ impl<'a> Cache<'a> {
                                 )
                                     .transpose()
                                     .map(|(i, o)| Artifact {
+                                        name: name.replacen('%', actual, 1),
                                         inputs: i,
                                         outputs: o,
                                     })
