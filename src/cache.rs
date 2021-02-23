@@ -228,13 +228,13 @@ impl<'a> Cache<'a> {
         objs
     }
 
-    fn abspath_for_object(&self, object: &Object, subpath: &Path) -> PathBuf {
-        self.path.join(&object.oid).join(subpath)
+    fn object_path(&self, object: &Object) -> PathBuf {
+        self.path.join(&object.oid)
     }
 
     /// Determine whether a subpath exists for an object.
     pub fn subpath_in_object(&self, object: &Object, subpath: &Path) -> Option<PathBuf> {
-        let abspath = self.abspath_for_object(object, subpath);
+        let abspath = self.object_path(object).join(subpath);
         if abspath.exists() {
             Some(abspath)
         } else {
@@ -323,7 +323,7 @@ impl<'a> Cache<'a> {
             return Ok(None);
         }
         let obj = obj.unwrap();
-        let path = self.path.as_path().join(&obj.oid);
+        let path = self.object_path(&obj);
         debug!("Cache path: {:?}.", path);
         for oup in &artifact.outputs {
             let src = path.as_path().join(oup);
@@ -352,7 +352,7 @@ impl<'a> Cache<'a> {
             )),
             Some(o) => Ok(o),
         }?;
-        let path = self.path.as_path().join(&req_obj.oid);
+        let path = self.object_path(&req_obj);
         debug!("Cache path: {:?}.", path);
         for oup in &artifact.outputs {
             let src = self.repo.path.as_path().join(oup);
