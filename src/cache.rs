@@ -228,13 +228,18 @@ impl<'a> Cache<'a> {
         objs
     }
 
-    fn object_path(&self, object: &Object) -> PathBuf {
-        self.path.join(&object.oid)
+    fn object_artifact_path(&self, object: &Object, artifact: &Artifact) -> PathBuf {
+        self.path.join(&object.oid).join(&artifact.name)
     }
 
     /// Determine whether a subpath exists for an object.
-    pub fn subpath_in_object(&self, object: &Object, subpath: &Path) -> Option<PathBuf> {
-        let abspath = self.object_path(object).join(subpath);
+    pub fn subpath_in_object(
+        &self,
+        object: &Object,
+        artifact: &Artifact,
+        subpath: &Path,
+    ) -> Option<PathBuf> {
+        let abspath = self.object_artifact_path(object, artifact).join(subpath);
         if abspath.exists() {
             Some(abspath)
         } else {
@@ -290,7 +295,7 @@ impl<'a> Cache<'a> {
         let ancestor = req_obj.unwrap();
         let mut oup_iter = artifact.outputs.iter();
         // Closure to determine candidates for an output of `artifact`.
-        let oup_candidates = |oup| self.find_candidates(ancestor.clone(), oup, &artifact.inputs);
+        let oup_candidates = |oup| self.find_candidates(ancestor.clone(), oup, &artifact);
         // Compute the initial set for the reduction from the candidates of the first output.
         let initial_candidates = match oup_iter.next() {
             Some(oup) => oup_candidates(oup),
@@ -323,7 +328,7 @@ impl<'a> Cache<'a> {
             return Ok(None);
         }
         let obj = obj.unwrap();
-        let path = self.object_path(&obj);
+        let path = self.object_artifact_path(&obj, &artifact);
         debug!("Cache path: {:?}.", path);
         for oup in &artifact.outputs {
             let src = path.as_path().join(oup);
@@ -352,7 +357,7 @@ impl<'a> Cache<'a> {
             )),
             Some(o) => Ok(o),
         }?;
-        let path = self.object_path(&req_obj);
+        let path = self.object_artifact_path(&req_obj, &artifact);
         debug!("Cache path: {:?}.", path);
         for oup in &artifact.outputs {
             let src = self.repo.path.as_path().join(oup);
@@ -392,7 +397,7 @@ impl<'a> Cache<'a> {
         &self,
         ancestor: Object<'a>,
         subpath: &Path,
-        inputs: &Vec<PathBuf>,
+        artifact: &Artifact,
     ) -> HashSet<Object<'a>> {
         debug!(
             "Finding candidates for {:?} with ancestor \"{}\":",
@@ -400,7 +405,7 @@ impl<'a> Cache<'a> {
         );
         // Simplest case: the required path exists for the ancestor itself.
         let mut set = HashSet::new();
-        let direct_path = self.subpath_in_object(&ancestor, subpath);
+        let direct_path = self.subpath_in_object(&ancestor, artifact, subpath);
         if direct_path.is_some() {
             trace!("Ancestor itself is a candidate.");
             set.insert(ancestor.clone());
@@ -416,12 +421,12 @@ impl<'a> Cache<'a> {
             .filter(|obj| obj.is_descendant_of(&ancestor))
             .inspect(|obj| trace!("Descendant: \"{}\"", obj))
             // Reduce to objects that contain the subpath.
-            .filter(|obj| self.subpath_in_object(&obj, subpath).is_some())
+            .filter(|obj| self.subpath_in_object(&obj, artifact, subpath).is_some())
             .inspect(|obj| trace!("Containing subpath: \"{}\"", obj))
             // Reduce to objects that do not change any of the inputs.
             .filter(|obj| {
                 let mut identical = true;
-                for inp in inputs {
+                for inp in &artifact.inputs {
                     if !self.objects_identical_for_path(&obj, &ancestor, inp) {
                         identical = false;
                         break;
