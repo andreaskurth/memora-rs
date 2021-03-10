@@ -11,6 +11,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 ### Changed
+
+### Fixed
+
+
+## 0.5.0
+
+### Changed
 - Separate cached outputs not only by the required commit but also by the artifact name.
   Previously, the outputs of all artifacts were stored under a directory named after the required
   commit.  Thus, if the required commit was identical for two artifacts that had an identical output
@@ -19,8 +26,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   directory named after the artifact within the directory of the required commit, thereby preventing
   these collisions.  A different way of thinking about this change is that the cache is now indexed
   by the required commit *and* the artifact name.
-
-### Fixed
 
 
 ## 0.4.4
