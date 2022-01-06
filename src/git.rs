@@ -49,10 +49,14 @@ impl Repo {
     }
 
     /// Creates a Git command on this repository.
-    pub fn cmd(&self, cmd: &str) -> Command {
+    pub fn cmd(&self, args: &[&str]) -> Command {
         let mut tmp = Command::new("git");
         tmp.current_dir(&self.path);
-        tmp.arg(cmd);
+        for a in args {
+            tmp.arg(a);
+        }
+        let cmd_str = format!("git {}", args.join(" "));
+        trace!("{}", cmd_str);
         tmp
     }
 
@@ -62,19 +66,17 @@ impl Repo {
         if params.len() == 0 {
             unreachable!("`cmd_output' invoked without parameters!");
         }
-        let mut cmd = self.cmd(params[0]);
-        for p in &params[1..] {
-            cmd.arg(p);
-        }
-        let cmd_str = format!("git {}", params.join(" "));
-        trace!("{}", cmd_str);
-        let output = cmd
-            .output()
-            .expect(&format!("could not get output of `{}'!", cmd_str));
+        let (cmd, output) = {
+            let mut cmd = self.cmd(params);
+            let output = cmd
+                .output()
+                .expect(&format!("could not get output of `{:#?}'!", cmd));
+            (cmd, output)
+        };
         trace!("{:?}", output);
         if output.status.success() {
             Some(trim_newline(String::from_utf8(output.stdout).expect(
-                &format!("output of `{}' contains non-UTF8 characters!", cmd_str),
+                &format!("output of `{:#?}' contains non-UTF8 characters!", cmd),
             )))
         } else {
             None
