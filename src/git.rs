@@ -95,6 +95,27 @@ impl Repo {
             })
     }
 
+    /// Returns true if a path contains uncommitted changes.  Returns false if the path has no
+    /// uncommitted changes or has not been added to the repository.
+    pub fn has_uncommitted_changes(&self, path: &Path) -> bool {
+        if self
+            .cmd_output(&["update-index", "--refresh", "--", path_str(path)])
+            .is_none()
+        {
+            // `git update-index` failed, which means an update is needed for this path.  Treat
+            // this as if the path contains uncommitted changes.
+            return true;
+        }
+        match self
+            .cmd(&["diff-index", "--quiet", "HEAD", "--", path_str(path)])
+            .output()
+            .map(|oup| oup.status.success())
+        {
+            Ok(b) => !b,    // success if no differences, so we have to invert
+            Err(_) => true, // treat errors as uncommitted changes (err on the safe side)
+        }
+    }
+
     /// Returns the first of a set of objects according to a given ordering.  Returns an error if
     /// the set is empty or any two of the objects are incomparable.
     fn first_ordered_object<'a>(
@@ -258,7 +279,7 @@ impl<'a> Object<'a> {
 mod tests {
     use super::*;
     use crate::error::{Error, Result};
-    use crate::test_util::{create_file, write_file};
+    use crate::test_util::{append_file, create_file, write_file};
     use maplit::hashset;
     use tempdir::TempDir;
 
@@ -481,6 +502,17 @@ mod tests {
                 .unwrap(),
             merge_commit
         );
+        Ok(())
+    }
+
+    #[test]
+    fn uncommitted_change_in_file() -> Result<()> {
+        let (repo, tmp_dir) = setup_with_commits_on_file("some_file", 1)?;
+        let path = tmp_dir.path().join("some_file");
+        assert_eq!(repo.has_uncommitted_changes(&path), false);
+        let mut file = append_file(&path)?;
+        write_file(&mut file, "bla")?;
+        assert_eq!(repo.has_uncommitted_changes(&path), true);
         Ok(())
     }
 }
