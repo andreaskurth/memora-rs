@@ -265,7 +265,8 @@ mod tests {
         fn cmd_assert(&self, params: &[&str]) {
             assert!(
                 self.cmd_output(params).is_some(),
-                format!("git {}", params.join(" "))
+                "git {}",
+                params.join(" ")
             );
         }
         fn last_commit(&self) -> Option<Object> {
