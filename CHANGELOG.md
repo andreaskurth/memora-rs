@@ -11,6 +11,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 ### Changed
+- Take uncommitted changes into account when computing which commit last changed a path
+  (technically: the *required object* in `cache::Cache::required_object`).  This means artifact
+  lookups will now always miss in the cache if one of its inputs has uncommitted changes.
 
 ### Fixed
 

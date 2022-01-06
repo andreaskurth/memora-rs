@@ -249,7 +249,19 @@ impl<'a> Cache<'a> {
 
     /// Determine required object for artifact.
     pub fn required_object(&self, artifact: &'a Artifact) -> Option<Object<'a>> {
-        // TODO: Take diff against possibly unclean working directory.
+        debug!("Checking if any input has uncommitted changes:");
+        let has_uncommitted_changes: bool = artifact.inputs.iter().any(|path| {
+            let path_uncommitted = self.repo.has_uncommitted_changes(path);
+            if path_uncommitted {
+                debug!("- {:?} has uncommitted changes", path);
+            }
+            path_uncommitted
+        });
+        if has_uncommitted_changes {
+            return None;
+        } else {
+            debug!("No uncommitted changes found.")
+        }
         debug!("Determining last object for each input:");
         let commits: Option<HashSet<Object>> = artifact
             .inputs
