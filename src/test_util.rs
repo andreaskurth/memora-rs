@@ -12,6 +12,19 @@ pub fn create_file<P: AsRef<Path>>(path: P) -> Result<std::fs::File> {
         .map_err(|cause| Error::chain(format!("Could not create file {:?}:", path.as_ref()), cause))
 }
 
+pub fn append_file<P: AsRef<Path>>(path: P) -> Result<std::fs::File> {
+    std::fs::OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(path.as_ref())
+        .map_err(|cause| {
+            Error::chain(
+                format!("Could not open file {:?} for appending:", path.as_ref()),
+                cause,
+            )
+        })
+}
+
 pub fn write_file(f: &mut std::fs::File, s: &str) -> Result<()> {
     use std::io::Write;
     write!(f, "{}", s)
