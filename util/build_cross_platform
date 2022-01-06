@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+#
+# Copyright 2022 Andreas Kurth
+# SPDX-License-Identifier: (Apache-2.0 OR MIT)
+
+set -euo pipefail
+
+readonly THIS_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+readonly REPO_DIR="$(dirname "$THIS_DIR")"
+
+readonly os_and_ver="$1"
+readonly os="$(echo "$os_and_ver" | cut -d ':' -f 1)"
+readonly os_and_ver_compact="$(echo "$os_and_ver" | tr -d ':')"
+
+mkdir_and_cd() {
+    mkdir -p "$1"
+    cd "$1"
+}
+mkdir_and_cd "$REPO_DIR/build/$os_and_ver_compact"
+
+# Generate Dockerfile
+readonly dockerfile='Dockerfile'
+
+echo "FROM $os_and_ver" > $dockerfile
+echo "" >> $dockerfile
+
+if test "$os" = "centos"; then
+    echo 'RUN yum group install "Development Tools" -y && yum clean all' >> $dockerfile
+fi
+echo "" >> $dockerfile
+
+echo 'ENV RUSTUP_HOME=/usr/local/rustup' >> $dockerfile
+echo 'ENV CARGO_HOME=/usr/local/cargo' >> $dockerfile
+echo 'ENV PATH=$CARGO_HOME/bin:$PATH' >> $dockerfile
+echo "" >> $dockerfile
+
+echo 'RUN mkdir -p "$CARGO_HOME" && mkdir -p "$RUSTUP_HOME" && \' >> $dockerfile
+echo '  curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable && \' >> $dockerfile
+echo '  chmod -R a=rwX $CARGO_HOME' >> $dockerfile
+echo "" >> $dockerfile
+
+cp "$REPO_DIR/Cargo.toml" .
+echo 'COPY Cargo.toml /source/' >> $dockerfile
+echo 'RUN cd /source && mkdir -p src && echo "fn main() {}" > src/main.rs && cargo fetch' >> $dockerfile
+
+echo 'WORKDIR /source' >> $dockerfile
+
+# Build Docker image
+docker build . -t "$os_and_ver"
+
+# Run cross-platform build in Docker image
+docker run \
+    -t --rm \
+    -v "$REPO_DIR:/source" \
+    -v "$REPO_DIR/target/$os_and_ver_compact:/source/target" \
+    "$os_and_ver" \
+    cargo build --release
