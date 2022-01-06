@@ -326,7 +326,7 @@ mod tests {
         repo.cmd_assert(&["checkout", "-b", "some_branch"]);
         rand_commits_on_file(&repo, path, 1)?;
         let some_commit = repo.last_commit().unwrap();
-        repo.cmd_assert(&["checkout", "master"]);
+        repo.cmd_assert(&["checkout", "main"]);
         repo.cmd_assert(&["checkout", "-b", "another_branch"]);
         rand_commits_on_file(&repo, path, 1)?;
         let another_commit = repo.last_commit().unwrap();
@@ -467,15 +467,15 @@ mod tests {
         repo.cmd_assert(&["checkout", "-b", "some_branch"]);
         rand_commits_on_file(&repo, "some_file", 2)?;
         let branch_commit = repo.past_commit(1).unwrap();
-        repo.cmd_assert(&["checkout", "master"]);
+        repo.cmd_assert(&["checkout", "main"]);
         rand_commits_on_file(&repo, "another_file", 20)?;
-        let master_commit = repo.past_commit(10).unwrap();
+        let main_commit = repo.past_commit(10).unwrap();
         repo.cmd_assert(&["merge", "--no-edit", "some_branch"]);
         let merge_commit = repo.last_commit().unwrap();
         rand_commits_on_file(&repo, "some_file", 1)?;
         assert_eq!(
             repo.oldest_common_descendant_on_current_branch(&hashset! {branch_commit.clone(),
-            master_commit.clone()})
+            main_commit.clone()})
                 .unwrap(),
             merge_commit
         );
