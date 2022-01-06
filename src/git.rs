@@ -48,16 +48,20 @@ impl Repo {
         }
     }
 
-    /// Creates a Git command on this repository.
-    pub fn cmd(&self, args: &[&str]) -> Command {
-        let mut tmp = Command::new("git");
+    fn custom_cmd(&self, cmd: &str, args: &[&str]) -> Command {
+        let mut tmp = Command::new(cmd);
         tmp.current_dir(&self.path);
         for a in args {
             tmp.arg(a);
         }
-        let cmd_str = format!("git {}", args.join(" "));
+        let cmd_str = format!("{} {}", cmd, args.join(" "));
         trace!("{}", cmd_str);
         tmp
+    }
+
+    /// Creates a Git command on this repository.
+    pub fn cmd(&self, args: &[&str]) -> Command {
+        self.custom_cmd("git", args)
     }
 
     /// Returns the standard output of a Git command on this repository if the command succeeds.
