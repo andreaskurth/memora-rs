@@ -7,7 +7,7 @@
 use crate::error::{Error, Result};
 use crate::util::trim_newline;
 use derivative::Derivative;
-use log::trace;
+use log::{trace, warn};
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
@@ -102,9 +102,24 @@ impl Repo {
     /// Returns true if a path contains uncommitted changes.  Returns false if the path has no
     /// uncommitted changes or has not been added to the repository.
     pub fn has_uncommitted_changes(&self, path: &Path) -> bool {
+        let ls_files = self
+            .cmd(&["ls-files", "-z", "--", path_str(path)])
+            .stdout(std::process::Stdio::piped())
+            .spawn();
+        if ls_files.is_err() {
+            // `git ls-files` failed.  Print a warning and continue as if the path contains uncommitted changes.
+            warn!(
+                "git ls-files {:?} failed, assuming path has uncommitted changes",
+                path
+            );
+            return true;
+        }
+        let ls_files = ls_files.unwrap();
         if self
-            .cmd_output(&["update-index", "--refresh", "--", path_str(path)])
-            .is_none()
+            .custom_cmd("xargs", &["-0", "git", "update-index", "--refresh", "--"])
+            .stdin(ls_files.stdout.unwrap())
+            .output()
+            .is_err()
         {
             // `git update-index` failed, which means an update is needed for this path.  Treat
             // this as if the path contains uncommitted changes.
@@ -283,6 +298,7 @@ impl<'a> Object<'a> {
 mod tests {
     use super::*;
     use crate::error::{Error, Result};
+    use crate::fs::create_dir;
     use crate::test_util::{append_file, create_file, write_file};
     use maplit::hashset;
     use tempdir::TempDir;
@@ -517,6 +533,22 @@ mod tests {
         let mut file = append_file(&path)?;
         write_file(&mut file, "bla")?;
         assert_eq!(repo.has_uncommitted_changes(&path), true);
+        Ok(())
+    }
+
+    #[test]
+    fn uncommitted_change_in_dir() -> Result<()> {
+        let (repo, tmp_dir) = setup()?;
+        let dir_path = tmp_dir.path().join("some_dir");
+        create_dir(&dir_path)?;
+        let file_path = dir_path.join("some_file");
+        create_file(&file_path)?;
+        repo.cmd_assert(&["add", "some_dir/some_file"]);
+        repo.cmd_assert(&["commit", "-m", "'Add some file'"]);
+        assert_eq!(repo.has_uncommitted_changes(&dir_path), false);
+        let mut file = append_file(&file_path)?;
+        write_file(&mut file, "foo")?;
+        assert_eq!(repo.has_uncommitted_changes(&dir_path), true);
         Ok(())
     }
 }
