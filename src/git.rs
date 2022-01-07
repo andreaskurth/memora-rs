@@ -25,6 +25,7 @@ pub struct Repo {
     pub path: PathBuf,
     #[derivative(PartialEq = "ignore", Hash = "ignore", Debug = "ignore")]
     ancestry_cache: RefCell<HashMap<(Oid, Oid), bool>>,
+    submodule_paths: Vec<PathBuf>,
 }
 
 /// A Git object.
@@ -42,10 +43,41 @@ fn path_str(path: &Path) -> &str {
 impl Repo {
     /// Creates a Repo object for a path.
     pub fn new(path: PathBuf) -> Repo {
-        Repo {
+        let mut repo = Repo {
             path,
             ancestry_cache: RefCell::new(HashMap::new()),
-        }
+            submodule_paths: vec![],
+        };
+        // Read submodule paths from `.gitmodules`.
+        repo.submodule_paths = {
+            let submodule_path_strs = repo
+                .cmd_output(&[
+                    "config",
+                    "--file",
+                    &path_str(&repo.path.join(".gitmodules")),
+                    "--get-regexp",
+                    r"submodule\..*\.path",
+                ])
+                .map_or(vec![], |oup: String| {
+                    let lines: Vec<String> = oup.split('\n').map(|s| s.to_owned()).collect();
+                    lines
+                        .into_iter()
+                        .map(|line| line.split_whitespace().nth(1).map(|s| s.to_owned()))
+                        .flatten()
+                        .collect::<Vec<_>>()
+                });
+            submodule_path_strs
+                .into_iter()
+                .map(|s| {
+                    let p = PathBuf::from(s);
+                    match p.as_path().is_relative() {
+                        true => repo.path.join(p),
+                        false => p,
+                    }
+                })
+                .collect()
+        };
+        repo
     }
 
     fn custom_cmd(&self, cmd: &str, args: &[&str]) -> Command {
@@ -343,6 +375,60 @@ mod tests {
         Ok((repo, tmp_dir, file))
     }
 
+    struct RepoWithSubmodule {
+        /// Outer repository
+        outer_repo: Repo,
+        /// Temporary directory of outer repository
+        outer_dir: TempDir,
+        /// Submodule repository cloned inside the outer repository
+        submodule_repo: Repo,
+        /// Path of submodule cloned inside the outer repository
+        submodule_path: PathBuf,
+        /// Upstream submodule repository, i.e., outside the outer repository
+        _upstream_submodule_repo: Repo,
+        /// Temporary directory of upstream submodule repository
+        _upstream_submodule_dir: TempDir,
+    }
+
+    impl RepoWithSubmodule {
+        fn setup() -> Result<RepoWithSubmodule> {
+            let mut rng = rand::thread_rng();
+            // Create outer repository.
+            let (outer_repo, outer_dir) = setup()?;
+            // Create upstream repository with one commit, so it can be cloned.
+            let (_upstream_submodule_repo, upstream_submodule_dir) =
+                setup_with_commits_on_file(&rand_string(&mut rng, 8), 1)?;
+            // Add submodule inside outer repository.
+            let submodule_name = rand_string(&mut rng, 8);
+            let submodule_path = outer_dir.path().join(&submodule_name);
+            outer_repo.cmd_assert(&[
+                "submodule",
+                "add",
+                "--",
+                path_str(upstream_submodule_dir.path()),
+                path_str(&submodule_path),
+            ]);
+            outer_repo.cmd_assert(&[
+                "commit",
+                "-m",
+                &format!("Add submodule {}", &submodule_name),
+            ]);
+            // Initialize cloned submodule.
+            let submodule_repo = Repo::new(submodule_path.clone());
+            repo_config_user(&submodule_repo);
+            // Recreate object for outer repository, because we have added a submodule after its creation.
+            let outer_repo = Repo::new(outer_dir.path().to_owned());
+            Ok(RepoWithSubmodule {
+                outer_repo,
+                outer_dir,
+                submodule_repo,
+                submodule_path,
+                _upstream_submodule_repo,
+                _upstream_submodule_dir: upstream_submodule_dir,
+            })
+        }
+    }
+
     fn rand_string(rng: &mut dyn rand::RngCore, n_chars: usize) -> String {
         use rand::distributions::Alphanumeric;
         use rand::Rng;
@@ -553,6 +639,30 @@ mod tests {
         let mut file = append_file(&file_path)?;
         write_file(&mut file, "foo")?;
         assert_eq!(repo.has_uncommitted_changes(&dir_path), true);
+        Ok(())
+    }
+
+    #[test]
+    fn submodule_path() -> Result<()> {
+        let mut rws = RepoWithSubmodule::setup()?;
+        // Assert that absolute path is detected.
+        assert_eq!(
+            rws.outer_repo.submodule_paths,
+            vec![rws.submodule_path.clone()]
+        );
+        // Modify to relative path and make sure that is converted to an absolute path.
+        rws.outer_repo.cmd_assert(&[
+            "config",
+            "--file",
+            path_str(&rws.outer_dir.path().join(".gitmodules")),
+            &format!("submodule.{}.path", path_str(&rws.submodule_path)),
+            rws.submodule_path.file_name().unwrap().to_str().unwrap(),
+        ]);
+        rws.outer_repo = Repo::new(rws.outer_dir.path().to_owned());
+        assert_eq!(
+            rws.outer_repo.submodule_paths,
+            vec![rws.submodule_path.clone()]
+        );
         Ok(())
     }
 }
