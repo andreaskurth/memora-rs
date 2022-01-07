@@ -13,6 +13,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 ### Fixed
+- Fix detection of uncommitted changes on inputs within submodules.
 
 
 ## 0.6.0

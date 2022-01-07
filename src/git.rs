@@ -134,8 +134,27 @@ impl Repo {
     /// Returns true if a path contains uncommitted changes.  Returns false if the path has no
     /// uncommitted changes or has not been added to the repository.
     pub fn has_uncommitted_changes(&self, path: &Path) -> bool {
+        // `git ls-files` does not work with paths inside submodules.  Thus, if a path is
+        // inside a submodule, do `git ls-files` on the submodule path instead.
+        // First, make the path absolute.
+        let path = match path.is_relative() {
+            true => self.path.join(path),
+            false => path.to_owned(),
+        };
+        // Second, if the path is inside a submodule, replace it with the path of the submodule.
+        let path = {
+            let mut path = path;
+            for s in &self.submodule_paths {
+                if path.starts_with(s) {
+                    path = s.to_owned();
+                    break;
+                }
+            }
+            path
+        };
+        // Finally, run `git ls-files` on the path.
         let ls_files = self
-            .cmd(&["ls-files", "-z", "--", path_str(path)])
+            .cmd(&["ls-files", "-z", "--", path_str(&path)])
             .stdout(std::process::Stdio::piped())
             .spawn();
         if ls_files.is_err() {
@@ -158,7 +177,7 @@ impl Repo {
             return true;
         }
         match self
-            .cmd(&["diff-index", "--quiet", "HEAD", "--", path_str(path)])
+            .cmd(&["diff-index", "--quiet", "HEAD", "--", path_str(&path)])
             .output()
             .map(|oup| oup.status.success())
         {
@@ -663,6 +682,27 @@ mod tests {
             rws.outer_repo.submodule_paths,
             vec![rws.submodule_path.clone()]
         );
+        Ok(())
+    }
+
+    #[test]
+    fn uncommitted_change_in_submodule() -> Result<()> {
+        let rws = RepoWithSubmodule::setup()?;
+        assert_eq!(
+            rws.outer_repo.has_uncommitted_changes(&rws.submodule_path),
+            false
+        );
+        let file_path = rws.submodule_path.join("some_file");
+        create_file(&file_path)?;
+        rws.submodule_repo
+            .cmd_assert(&["add", path_str(&file_path)]);
+        rws.submodule_repo
+            .cmd_assert(&["commit", "-m", "Add some file"]);
+        assert_eq!(
+            rws.outer_repo.has_uncommitted_changes(&rws.submodule_path),
+            true
+        );
+        assert_eq!(rws.outer_repo.has_uncommitted_changes(&file_path), true);
         Ok(())
     }
 }
