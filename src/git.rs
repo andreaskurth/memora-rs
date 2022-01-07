@@ -322,13 +322,17 @@ mod tests {
         }
     }
 
+    fn repo_config_user(repo: &Repo) {
+        repo.cmd_assert(&["config", "--local", "user.name", "Test"]);
+        repo.cmd_assert(&["config", "--local", "user.email", "test@localhost"]);
+    }
+
     fn setup() -> Result<(Repo, TempDir)> {
         let tmp = TempDir::new("memora-test-git")
             .map_err(|cause| Error::chain("Could not create temporary directory:", cause))?;
         let repo = Repo::new(tmp.path().to_path_buf());
         repo.cmd_assert(&["init"]);
-        repo.cmd_assert(&["config", "--local", "user.name", "Test"]);
-        repo.cmd_assert(&["config", "--local", "user.email", "test@localhost"]);
+        repo_config_user(&repo);
         Ok((repo, tmp))
     }
 
