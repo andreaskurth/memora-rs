@@ -30,6 +30,10 @@ pub fn main() -> Result<bool> {
             .takes_value(true)
             .help("Run as if started in this path.")
     )
+    .arg(Arg::with_name("ignore_uncommitted_changes")
+            .long("ignore-uncommitted-changes")
+            .help("Ignores uncommitted changes")
+    )
     .subcommand(SubCommand::with_name("get")
             .about("Get the outputs of an artifact from the cache or exit non-zero if the artifact is not cached.")
             .arg(Arg::with_name("artifact")
@@ -137,17 +141,22 @@ pub fn main() -> Result<bool> {
     };
     debug!("Cache: {:?}.", cache);
 
+    let ignore_uncommitted_changes = matches.is_present("ignore_uncommitted_changes");
+    if ignore_uncommitted_changes {
+        debug!("Ignoring uncommitted changes.");
+    }
+
     match matches.subcommand() {
         ("get", Some(matches)) => match disabled {
-            false => get(&cache, matches),
+            false => get(&cache, matches, ignore_uncommitted_changes),
             true => Ok(false),
         },
         ("insert", Some(matches)) => match disabled {
-            false => insert(&cache, matches),
+            false => insert(&cache, matches, ignore_uncommitted_changes),
             true => Ok(true),
         },
         ("lookup", Some(matches)) => match disabled {
-            false => lookup(&cache, matches),
+            false => lookup(&cache, matches, ignore_uncommitted_changes),
             true => Ok(false),
         },
         _ => Error::result("Unknown combination of subcommand and arguments!"),
@@ -161,10 +170,10 @@ fn artifact_name<'a>(matches: &'a ArgMatches) -> Result<&'a str> {
     }
 }
 
-pub fn get(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
+pub fn get(cache: &Cache, matches: &ArgMatches, ignore_uncommitted_changes: bool) -> Result<bool> {
     let artifact_name = artifact_name(matches)?;
     let artifact = cache.artifact(artifact_name)?;
-    match cache.get(&artifact) {
+    match cache.get(&artifact, ignore_uncommitted_changes) {
         Ok(Some(obj)) => {
             info!("Got artifact \"{}\" from {:?}.", artifact_name, obj.oid);
             Ok(true)
@@ -177,10 +186,14 @@ pub fn get(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
     }
 }
 
-pub fn insert(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
+pub fn insert(
+    cache: &Cache,
+    matches: &ArgMatches,
+    ignore_uncommitted_changes: bool,
+) -> Result<bool> {
     let artifact_name = artifact_name(matches)?;
     let artifact = cache.artifact(artifact_name)?;
-    match cache.insert(&artifact) {
+    match cache.insert(&artifact, ignore_uncommitted_changes) {
         Ok((false, obj)) => {
             info!(
                 "Artifact artifact \"{}\" already exists under {:?}, did not insert.",
@@ -199,10 +212,14 @@ pub fn insert(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
     }
 }
 
-pub fn lookup(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
+pub fn lookup(
+    cache: &Cache,
+    matches: &ArgMatches,
+    ignore_uncommitted_changes: bool,
+) -> Result<bool> {
     let artifact_name = artifact_name(matches)?;
     let artifact = cache.artifact(artifact_name)?;
-    match cache.cached_object(&artifact) {
+    match cache.cached_object(&artifact, ignore_uncommitted_changes) {
         Some(obj) => {
             info!("Found artifact \"{}\" in {:?}.", artifact_name, obj.oid);
             Ok(true)

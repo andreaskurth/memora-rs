@@ -248,19 +248,25 @@ impl<'a> Cache<'a> {
     }
 
     /// Determine required object for artifact.
-    pub fn required_object(&self, artifact: &'a Artifact) -> Option<Object<'a>> {
-        debug!("Checking if any input has uncommitted changes:");
-        let has_uncommitted_changes: bool = artifact.inputs.iter().any(|path| {
-            let path_uncommitted = self.repo.has_uncommitted_changes(path);
-            if path_uncommitted {
-                debug!("- {:?} has uncommitted changes", path);
+    pub fn required_object(
+        &self,
+        artifact: &'a Artifact,
+        ignore_uncommitted_changes: bool,
+    ) -> Option<Object<'a>> {
+        if !ignore_uncommitted_changes {
+            debug!("Checking if any input has uncommitted changes:");
+            let has_uncommitted_changes: bool = artifact.inputs.iter().any(|path| {
+                let path_uncommitted = self.repo.has_uncommitted_changes(path);
+                if path_uncommitted {
+                    debug!("- {:?} has uncommitted changes", path);
+                }
+                path_uncommitted
+            });
+            if has_uncommitted_changes {
+                return None;
+            } else {
+                debug!("No uncommitted changes found.")
             }
-            path_uncommitted
-        });
-        if has_uncommitted_changes {
-            return None;
-        } else {
-            debug!("No uncommitted changes found.")
         }
         debug!("Determining last object for each input:");
         let commits: Option<HashSet<Object>> = artifact
@@ -299,8 +305,12 @@ impl<'a> Cache<'a> {
     }
 
     /// Find cached object for artifact.
-    pub fn cached_object(&self, artifact: &'a Artifact) -> Option<Object<'a>> {
-        let req_obj = self.required_object(artifact);
+    pub fn cached_object(
+        &self,
+        artifact: &'a Artifact,
+        ignore_uncommitted_changes: bool,
+    ) -> Option<Object<'a>> {
+        let req_obj = self.required_object(artifact, ignore_uncommitted_changes);
         if req_obj.is_none() {
             return None;
         }
@@ -333,9 +343,13 @@ impl<'a> Cache<'a> {
         intersection.and_then(|set| set.iter().next().map(|obj| obj.clone()))
     }
 
-    pub fn get(&self, artifact: &'a Artifact) -> Result<Option<Object<'a>>> {
+    pub fn get(
+        &self,
+        artifact: &'a Artifact,
+        ignore_uncommitted_changes: bool,
+    ) -> Result<Option<Object<'a>>> {
         let _lock = self.lock_read_only()?;
-        let obj = self.cached_object(artifact);
+        let obj = self.cached_object(artifact, ignore_uncommitted_changes);
         if obj.is_none() {
             return Ok(None);
         }
@@ -356,13 +370,17 @@ impl<'a> Cache<'a> {
         Ok(Some(obj))
     }
 
-    pub fn insert(&self, artifact: &'a Artifact) -> Result<(bool, Object<'a>)> {
+    pub fn insert(
+        &self,
+        artifact: &'a Artifact,
+        ignore_uncommitted_changes: bool,
+    ) -> Result<(bool, Object<'a>)> {
         let _lock = self.lock_read_write()?;
-        let cached_obj = self.cached_object(artifact);
+        let cached_obj = self.cached_object(artifact, ignore_uncommitted_changes);
         if cached_obj.is_some() {
             return Ok((false, cached_obj.unwrap()));
         }
-        let req_obj = match self.required_object(artifact) {
+        let req_obj = match self.required_object(artifact, ignore_uncommitted_changes) {
             None => Error::result(format!(
                 "Could not determine insertion object for {:?}",
                 artifact
