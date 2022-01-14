@@ -9,11 +9,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## Unreleased
 
 ### Added
-- Add `--ignore-uncommitted-changes` flag to optionally ignore uncommitted changes.
 
 ### Changed
 
 ### Fixed
+
+
+## 0.6.2
+
+### Added
+- Add `--ignore-uncommitted-changes` flag to optionally ignore uncommitted changes.
 
 
 ## 0.6.1
