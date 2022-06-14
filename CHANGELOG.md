@@ -13,6 +13,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Changed
 
 ### Fixed
+- Update dependencies to fix security vulnerabilities affecting the following crates and versions:
+  - `linked-hash-map < 0.5.3`
+  - `nix < 0.20.2`
+  - `regex < 1.5.5`
 
 
 ## 0.6.2
