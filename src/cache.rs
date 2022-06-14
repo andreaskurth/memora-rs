@@ -7,7 +7,7 @@
 use crate::error::{Error, Result};
 use crate::git::{Object, Oid, Repo};
 use derivative::Derivative;
-use file_lock::FileLock;
+use file_lock::{FileLock, FileOptions};
 use log::{debug, error, trace, warn};
 use regex::Regex;
 use serde::Deserialize;
@@ -116,8 +116,12 @@ impl<'a> Cache<'a> {
             }
         }?;
         debug!("Obtaining lock ..");
-        let lock = FileLock::lock(&path, true, !read_only)
-            .map_err(|cause| Error::chain(format!("Could not lock {:?}!", path), cause))?;
+        let lock = FileLock::lock(
+            &path,
+            true,
+            FileOptions::new().read(read_only).write(!read_only),
+        )
+        .map_err(|cause| Error::chain(format!("Could not lock {:?}!", path), cause))?;
         if read_only {
             debug!("Read-only lock obtained.");
         } else {
