@@ -54,6 +54,18 @@ pub fn main() -> Result<bool> {
                     .takes_value(true)
                     .required(true)
              )
+    )
+    .subcommand(SubCommand::with_name("rm")
+            .about("Locally remove the outputs of an artifact.")
+            .arg(Arg::with_name("artifact")
+                    .takes_value(true)
+                    .required(true)
+             )
+             .arg(Arg::with_name("dry-run")
+                     .long("dry-run")
+                     .short("n")
+                     .help("Print the files that would be deleted, but do not remove them.")
+             )
     );
 
     // Parse command-line arguments.
@@ -159,6 +171,10 @@ pub fn main() -> Result<bool> {
             false => lookup(&cache, matches, ignore_uncommitted_changes),
             true => Ok(false),
         },
+        ("rm", Some(matches)) => match disabled {
+            false => rm(&cache, matches),
+            true => Ok(false),
+        },
         _ => Error::result("Unknown combination of subcommand and arguments!"),
     }
 }
@@ -228,5 +244,24 @@ pub fn lookup(
             info!("Artifact \"{}\" not found in cache.", artifact_name);
             Ok(false)
         }
+    }
+}
+
+pub fn rm(cache: &Cache, matches: &ArgMatches) -> Result<bool> {
+    let artifact_name = artifact_name(matches)?;
+    let artifact = cache.artifact(artifact_name)?;
+    let dry_run = matches.is_present("dry-run");
+
+    if dry_run {
+        info!("Dry-run");
+    }
+
+    match cache.rm(&artifact, dry_run) {
+        Ok(true) => {
+            info!("Output removal successful.");
+            Ok(true)
+        },
+        Ok(false) => Ok(false),
+        Err(_e) => Ok(false),
     }
 }

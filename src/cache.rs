@@ -407,6 +407,53 @@ impl<'a> Cache<'a> {
         Ok((true, req_obj))
     }
 
+    /// Remove local output of artifact
+    pub fn rm(
+        &self,
+        artifact: &'a Artifact,
+        dry_run: bool,
+    ) -> std::result::Result<bool, std::io::Error> {
+        for oup in &artifact.outputs {
+            let dst = self.repo.path.as_path().join(oup);
+            // Get metadata to check if file exists and is file or directory
+            let md = match std::fs::metadata(&dst) {
+                Ok(md) => md,
+                Err(_e) => {
+                    continue;
+                }
+            };
+            // If output is a directory, remove it recursively
+            if md.is_dir() {
+                if dry_run {
+                    println!("Would remove {:?}", dst);
+                    continue;
+                }
+                debug!("Removing {:?}", dst);
+                match fs::remove_dir_all(&dst) {
+                    Ok(()) => (),
+                    Err(e) => {
+                        error!("Failed to remove directory {:?}: {:?}", &dst, e);
+                        return Err(e);
+                    }
+                }
+            } else if md.is_file() {
+                if dry_run {
+                    println!("Would remove {:?}", dst);
+                    continue;
+                }
+                debug!("Removing {:?}", dst);
+                match fs::remove_file(&dst) {
+                    Ok(()) => (),
+                    Err(e) => {
+                        error!("Failed to remove file {:?}: {:?}", &dst, e);
+                        return Err(e);
+                    }
+                }
+            }
+        }
+        Ok(true)
+    }
+
     fn objects_identical_for_path(&self, a: &Object, b: &Object, path: &Path) -> bool {
         let key = (a.oid.clone(), b.oid.clone(), path.to_path_buf());
         if let Some(entry) = self.objects_path_identity_cache.borrow().get(&key) {
